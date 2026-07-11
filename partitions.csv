@@ -1,0 +1,8 @@
+# Name,   Type, SubType, Offset,  Size, Flags
+# ESP32-S3-ETH: 16 MB flash — factory app + LittleFS for devices.json (E1)
+nvs,      data, nvs,     0x10000, 0xC000,
+otadata,  data, ota,     ,        0x2000,
+phy_init, data, phy,     ,        0x1000,
+factory,  app,  factory, ,        0x300000,
+fctry,    data, nvs,     ,        0x6000,
+littlefs, data, littlefs,,        0x100000,

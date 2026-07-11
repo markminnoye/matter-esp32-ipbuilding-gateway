@@ -1,0 +1,29 @@
+menu "IPBuilding Gateway"
+
+    config WIFI_SSID
+        string "WiFi SSID (home LAN, Matter commissioning)"
+        default "YOUR_SSID"
+        help
+            Home LAN WiFi network used for Matter over WiFi.
+
+    config WIFI_PASSWORD
+        string "WiFi password"
+        default "YOUR_PASSWORD"
+        help
+            WiFi password. Set via menuconfig — never commit sdkconfig with real credentials.
+
+    config ETH_STATIC_IP
+        string "Field-bus Ethernet IP"
+        default "10.10.1.1"
+        help
+            Static IP on the IPBuilding VLAN (W5500 interface).
+
+    config ETH_STATIC_GW
+        string "Field-bus Ethernet gateway"
+        default "10.10.1.1"
+
+    config ETH_STATIC_NETMASK
+        string "Field-bus Ethernet netmask"
+        default "255.255.255.0"
+
+endmenu

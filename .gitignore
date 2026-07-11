@@ -1,0 +1,58 @@
+.DS_Store
+
+# Agent / IDE tooling (per-developer)
+.adal/
+.augment/
+.bob/
+.claude/
+.codebuddy/
+.commandcode/
+.continue/
+.cortex/
+.crush/
+.factory/
+.goose/
+.iflow/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.openhands/
+.pi/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.trae/
+.vibe/
+.windsurf/
+.zencoder/
+.agents/
+.cursor/
+.vscode/
+
+# ESP-IDF build artifacts
+build/
+sdkconfig
+sdkconfig.old
+dependencies.lock
+managed_components/
+eim_config.toml
+
+# Runtime / local config (flash image built from example)
+config/devices.json
+
+# Captures & temp
+captures/
+tmp/
+*.pcapng
+*.pcap
+
+# Python (host-side tooling, if any)
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

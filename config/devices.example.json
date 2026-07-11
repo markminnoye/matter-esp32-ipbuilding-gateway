@@ -1,0 +1,45 @@
+{
+  "modules": [
+    {
+      "ip": "10.10.1.30",
+      "type": "relay",
+      "name": "IP0200PoE",
+      "channels": [
+        {
+          "ch": 0,
+          "name": "Keuken LED",
+          "room": "Keuken",
+          "semantic_type": "light",
+          "active": true
+        },
+        {
+          "ch": 4,
+          "name": "Ventilatie",
+          "room": "Badkamer",
+          "semantic_type": "fan",
+          "active": true
+        },
+        {
+          "ch": 7,
+          "name": "Rookmelder voeding",
+          "room": "Hal",
+          "semantic_type": "switch",
+          "active": true
+        }
+      ]
+    },
+    {
+      "ip": "10.10.1.40",
+      "type": "dimmer",
+      "name": "IP0300PoE",
+      "channels": [
+        {
+          "ch": 0,
+          "name": "Woonkamer dimmer",
+          "room": "Woonkamer",
+          "active": true
+        }
+      ]
+    }
+  ]
+}
