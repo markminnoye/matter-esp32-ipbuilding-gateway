@@ -25,9 +25,16 @@
 - CI: GitHub Actions `idf.py build` for esp32s3
 - **Veldtest evidence:** [`docs/field-test/evidence/2026-07-11-e0-bootstrap.md`](docs/field-test/evidence/2026-07-11-e0-bootstrap.md)
 
-**Interim lab:** ontwikkeling vanuit **thuis-LAN** (WiFi); IPBuilding VLAN (`10.10.1.0/24`) nog niet op testbench — veldbus ping/E1 hardware-test uitgesteld tot zekeringskast of VLAN.
+**E1 veldbus MVP — code af (2026-07-11, desk lab):**
+- Payload port: relay/dimmer/input (`main/veldbus/payloads/`)
+- ConfigStore (LittleFS + embedded fallback) + DeviceRegistry (`active:true` filter)
+- UdpBusManager: poll/RX tasks, UDP/1001 on ETH
+- Unity payload tests: `test/payload/`
+- **Hardware-validatie uitgesteld** tot IPBuilding VLAN — zie [`docs/field-test/e1-veldbus-checklist.md`](docs/field-test/e1-veldbus-checklist.md)
 
-**Volgende fase:** E1 — Veldbus MVP (port `gateway/payloads/`, UDP poll, LittleFS config)
+**Interim lab:** ontwikkeling vanuit **thuis-LAN** (WiFi); IPBuilding VLAN (`10.10.1.0/24`) nog niet op testbench — veldbus poll draait, geen module-replies op desk.
+
+**Volgende fase:** E1 hardware-acceptatie (VLAN) → E2 Matter bridge
 
 **Open beslissingen:**
 - **H1:** WiFi-bereik in metalen zekeringskast (desk RSSI -64 dBm; cabinet test open)

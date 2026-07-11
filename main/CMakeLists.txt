@@ -4,11 +4,21 @@ idf_component_register(
         "board/waveshare_s3_eth.cpp"
         "network/network_manager.cpp"
         "matter/matter_init.cpp"
+        "config/config_store.cpp"
+        "registry/types.cpp"
+        "registry/device_registry.cpp"
+        "veldbus/payloads/relay.cpp"
+        "veldbus/payloads/dimmer.cpp"
+        "veldbus/payloads/input.cpp"
+        "veldbus/udp_bus_manager.cpp"
     INCLUDE_DIRS
         "."
         "board"
         "network"
         "matter"
+        "config"
+        "registry"
+        "veldbus"
     REQUIRES
         nvs_flash
         esp_netif
@@ -17,6 +27,9 @@ idf_component_register(
         esp_wifi
         driver
         esp_matter
+        json
+        littlefs
+        lwip
 )
 
 target_compile_options(${COMPONENT_LIB} PRIVATE "-DCHIP_HAVE_CONFIG_H")

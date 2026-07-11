@@ -1,5 +1,8 @@
+#include "config/config_store.h"
 #include "matter_init.h"
 #include "network_manager.h"
+#include "registry/device_registry.h"
+#include "veldbus/udp_bus_manager.h"
 
 #include "esp_chip_info.h"
 #include "esp_heap_caps.h"
@@ -11,6 +14,9 @@
 
 static const char *TAG = "app_main";
 
+static ipbuilding::config::ConfigStore s_config;
+static ipbuilding::registry::DeviceRegistry s_registry;
+
 static void log_boot_banner()
 {
     esp_chip_info_t chip_info = {};
@@ -19,7 +25,7 @@ static void log_boot_banner()
     uint8_t mac[6] = {};
     esp_read_mac(mac, ESP_MAC_WIFI_STA);
 
-    ESP_LOGI(TAG, "IPBuilding embedded gateway — E0 bootstrap");
+    ESP_LOGI(TAG, "IPBuilding embedded gateway — E1 veldbus MVP");
     ESP_LOGI(TAG, "Chip: ESP32-S3, cores=%d, revision=%d", chip_info.cores, chip_info.revision);
     ESP_LOGI(TAG, "MAC: %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     ESP_LOGI(TAG, "Free heap: %lu bytes (internal), %lu bytes (PSRAM)", static_cast<unsigned long>(esp_get_free_heap_size()),
@@ -38,6 +44,18 @@ extern "C" void app_main(void)
     log_boot_banner();
 
     ESP_ERROR_CHECK(ipbuilding::network::init());
+
+    err = s_config.init();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Config load failed: %s", esp_err_to_name(err));
+    } else {
+        s_registry.load_from_modules(s_config.modules());
+    }
+
+    err = ipbuilding::veldbus::start(s_registry);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Veldbus start failed: %s", esp_err_to_name(err));
+    }
 
     err = ipbuilding::matter::init();
     if (err != ESP_OK) {

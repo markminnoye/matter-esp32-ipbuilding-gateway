@@ -8,7 +8,7 @@ Replaces the proprietary IPBox hub role on the field bus and exports relay/dimme
 
 | Variant | Platform | Status |
 |---------|----------|--------|
-| **Embedded Matter hub** (this repo) | ESP32-S3-ETH (W5500 + WiFi) | E0 bootstrap — firmware skeleton |
+| **Embedded Matter hub** (this repo) | ESP32-S3-ETH (W5500 + WiFi) | E1 veldbus MVP — payloads, UDP poll, LittleFS config |
 | HA add-on + companion | Python gateway on HA | [IPBuilding-Gateway](https://github.com/markminnoye/IPBuilding-Gateway) — shipping |
 | Standalone Python (Pi 3B) | Linux | Parallel validation track |
 
@@ -63,6 +63,23 @@ idf.py -p /dev/cu.usbmodem* flash monitor
 
 **Note:** esp-matter is pulled automatically via the Component Registry (`main/idf_component.yml`). No separate esp-matter clone is required.
 
+### 4. Flash devices.json (E1)
+
+LittleFS stores field-bus config. Before first flash:
+
+```bash
+cp config/devices.example.json config/devices.json
+```
+
+The build embeds the `config/` folder into the `littlefs` partition. Edit `config/devices.json` for your installation (gitignored).
+
+### 5. Payload unit tests (optional)
+
+```bash
+cd test/payload
+idf.py build
+```
+
 ## Related repos
 
 | Repo | Role |
@@ -74,6 +91,7 @@ idf.py -p /dev/cu.usbmodem* flash monitor
 
 - [`docs/README.md`](docs/README.md) — spec index
 - [`docs/field-test/e0-bootstrap-checklist.md`](docs/field-test/e0-bootstrap-checklist.md) — E0 verification steps
+- [`docs/field-test/e1-veldbus-checklist.md`](docs/field-test/e1-veldbus-checklist.md) — E1 verification steps
 - [`config/devices.example.json`](config/devices.example.json) — flash config shape (E1)
 
 ## Firmware layout
