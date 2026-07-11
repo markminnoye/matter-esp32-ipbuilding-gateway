@@ -18,17 +18,19 @@
 
 ## Status
 
-**E0 bootstrap (2026-07-10):**
+**E0 bootstrap — afgerond (2026-07-11, desk lab):**
 - Firmware skeleton: ESP-IDF + managed esp-matter component
 - W5500 board layer + dual-netif network manager (ETH `10.10.1.1` + WiFi STA)
 - Matter placeholder On/Off Light endpoint (E2 replaces with veldbus-mapped endpoints)
 - CI: GitHub Actions `idf.py build` for esp32s3
-- **Handmatige veldtest:** zie [`docs/field-test/e0-bootstrap-checklist.md`](docs/field-test/e0-bootstrap-checklist.md)
+- **Veldtest evidence:** [`docs/field-test/evidence/2026-07-11-e0-bootstrap.md`](docs/field-test/evidence/2026-07-11-e0-bootstrap.md)
+
+**Interim lab:** ontwikkeling vanuit **thuis-LAN** (WiFi); IPBuilding VLAN (`10.10.1.0/24`) nog niet op testbench — veldbus ping/E1 hardware-test uitgesteld tot zekeringskast of VLAN.
 
 **Volgende fase:** E1 — Veldbus MVP (port `gateway/payloads/`, UDP poll, LittleFS config)
 
 **Open beslissingen:**
-- **H1:** WiFi-bereik in metalen zekeringskast (test-actie Fase E0)
+- **H1:** WiFi-bereik in metalen zekeringskast (desk RSSI -64 dBm; cabinet test open)
 - **H2:** Productie-hardware: DIN-rail board vs gemonteerd dev-board (na E2-acceptatie)
 
 **Lab-hardware (bevestigd):** Waveshare **ESP32-S3-ETH** (ESP32-S3R8 + W5500).

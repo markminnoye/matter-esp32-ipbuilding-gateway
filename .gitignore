@@ -1,5 +1,8 @@
 .DS_Store
 
+# IDE index cache
+.cache/
+
 # Agent / IDE tooling (per-developer)
 .adal/
 .augment/
