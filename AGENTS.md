@@ -36,6 +36,7 @@
 
 **E2 Matter MVP — code implemented (2026-07-11); veldtest open:**
 - MatterBridge: per actief kanaal een endpoint (light→On/Off Light, fan→Fan Off/High, switch→Plug-in Unit, dimmer→Dimmable Light); placeholder-endpoint verwijderd
+- Bridge-topologie (2026-07-12): Aggregator + Bridged Nodes met `NodeLabel` = kanaalnaam en `UniqueID` = entity-id — namen zichtbaar in Apple Home/HA; `room` blijft controller-side
 - Command path (E2.4): attribute PRE_UPDATE → `send_relay_command`/`send_dimmer_command`/`send_dimmer_off`; echo-guard tegen sync-loops
 - State sync (E2.3): DeviceRegistry state-change listeners → `attribute::update` onder chip-stack lock
 - **Veldtest:** [`docs/field-test/e2-matter-checklist.md`](docs/field-test/e2-matter-checklist.md) — MVP-gates Apple Home + HA Matter nog open

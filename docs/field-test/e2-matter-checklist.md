@@ -59,6 +59,7 @@ Serial toont bij boot de mapping: `Endpoint <id> <- <ip>:<type>:<ch> "<naam>"`.
 | Check | Desk-lab | VLAN/cabinet |
 |-------|----------|--------------|
 | Alle `active:true` kanalen zichtbaar in Apple Home | ☐ | ☐ |
+| Kanaalnamen uit `devices.json` zichtbaar als accessoirenaam (NodeLabel) | ☐ | ☐ |
 | Lichten als lamp, fans als ventilator, switch als stekker | ☐ | ☐ |
 | Dimmer toont aan/uit + helderheidsslider | ☐ | ☐ |
 | On/off werkt fysiek op meerdere kanalen | N/A | ☐ |
@@ -108,7 +109,8 @@ Commissioning-code verschijnt op serial bij eerste boot (of na factory reset: `i
 
 | Direction | Example | Meaning |
 |-----------|---------|---------|
-| Boot | `Endpoint 2 <- 10.10.1.30:relay:10 "Inkom"` | Veldbus-kanaal → Matter endpoint mapping |
+| Boot | `Aggregator endpoint 1 (bridge root)` | Node presenteert zich als Matter-bridge |
+| Boot | `Endpoint 2 <- 10.10.1.30:relay:10 "Inkom"` | Veldbus-kanaal → Matter endpoint mapping; naam = NodeLabel |
 | Boot | `Created 28 veldbus-mapped endpoints` | Bridge klaar vóór `esp_matter::start` |
 | Boot | `State sync active (veldbus -> Matter attributes)` | E2.3 listener geregistreerd |
 | Matter → veldbus | `Matter -> veldbus: ep=2 "Inkom" on_off=1` | Controller-commando; direct gevolgd door `TX command ->` |
@@ -118,7 +120,9 @@ Commissioning-code verschijnt op serial bij eerste boot (of na factory reset: `i
 
 **Gedragsnotities:**
 
-- Endpoint-id's worden in `devices.json`-volgorde toegewezen — volgorde niet wijzigen na commissioning, anders verschuiven accessoires in Apple Home.
+- Bridge-topologie: Aggregator-endpoint + per kanaal een Bridged Node met `NodeLabel` (= `name` uit `devices.json`) en `UniqueID` (= entity-id `ip:type:ch`). Controllers tonen elk kanaal als los accessoire met die naam.
+- Endpoint-id's worden in `devices.json`-volgorde toegewezen — volgorde bij voorkeur niet wijzigen na commissioning; de `UniqueID` helpt controllers de identiteit te behouden, maar niet elke controller gebruikt die.
+- `room` uit `devices.json` wordt **niet** via Matter geëxporteerd: Matter kent geen standaard room-attribuut dat Apple Home of HA overneemt — kamers wijs je toe in de controller zelf.
 - Dimmer "aan" zonder niveau (kaal on-commando) stuurt het laatst bekende niveau, anders 100%.
 - Fan-endpoints gebruiken FanControl met sequence Off/High; Apple toont een ventilator-tegel.
 - De echo-guard (`s_sync_in_progress`) voorkomt dat een veldbus→Matter sync opnieuw een veldbus-commando triggert.
