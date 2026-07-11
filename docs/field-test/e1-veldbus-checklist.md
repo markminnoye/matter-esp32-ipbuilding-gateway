@@ -14,8 +14,8 @@ Desk-lab partial acceptance is possible without IPBuilding VLAN. Full E1 accepta
 
 | Check | Desk-lab | VLAN/cabinet |
 |-------|----------|--------------|
-| Serial: `UdpBusManager started on 10.10.1.1:1001` | ☐ | ☐ |
-| Serial: `Poll 10.10.1.30 (relay)` every ~2 s | ☐ | ☐ |
+| Serial: `UdpBusManager started on 10.10.1.1:1001` | ☑ | [`2026-07-11-e1-desk-lab.md`](evidence/2026-07-11-e1-desk-lab.md) |
+| Serial: `Poll 10.10.1.30 (relay)` every ~2 s | ☑ | Relay + dimmer `.40`; no replies (desk) |
 | PCAP/mirror confirms `P0000` on wire | N/A | ☐ |
 
 ## E1.3 — Relay/dimmer commands
@@ -30,8 +30,8 @@ Desk-lab partial acceptance is possible without IPBuilding VLAN. Full E1 accepta
 
 | Check | Desk-lab | VLAN/cabinet |
 |-------|----------|--------------|
-| LittleFS mount or embedded fallback | ☐ | ☐ |
-| Serial: `Loaded N modules (M active with channels)` | ☐ | ☐ |
+| LittleFS mount or embedded fallback | ☑ | 2 modules parsed |
+| Serial: `Loaded N modules (M active with channels)` | ☑ | 2 active |
 | Inactive channels excluded from poll list | ☐ | ☐ |
 
 ## E1.5 — Input listener

@@ -25,12 +25,10 @@
 - CI: GitHub Actions `idf.py build` for esp32s3
 - **Veldtest evidence:** [`docs/field-test/evidence/2026-07-11-e0-bootstrap.md`](docs/field-test/evidence/2026-07-11-e0-bootstrap.md)
 
-**E1 veldbus MVP — code af (2026-07-11, desk lab):**
-- Payload port: relay/dimmer/input (`main/veldbus/payloads/`)
-- ConfigStore (LittleFS + embedded fallback) + DeviceRegistry (`active:true` filter)
-- UdpBusManager: poll/RX tasks, UDP/1001 on ETH
-- Unity payload tests: `test/payload/`
-- **Hardware-validatie uitgesteld** tot IPBuilding VLAN — zie [`docs/field-test/e1-veldbus-checklist.md`](docs/field-test/e1-veldbus-checklist.md)
+**E1 veldbus MVP — desk-lab accepted (2026-07-11):**
+- Payload port, ConfigStore, DeviceRegistry, UdpBusManager (commit `23ad6c2`)
+- **Veldtest evidence:** [`docs/field-test/evidence/2026-07-11-e1-desk-lab.md`](docs/field-test/evidence/2026-07-11-e1-desk-lab.md)
+- **Hardware-validatie uitgesteld** tot IPBuilding VLAN
 
 **Interim lab:** ontwikkeling vanuit **thuis-LAN** (WiFi); IPBuilding VLAN (`10.10.1.0/24`) nog niet op testbench — veldbus poll draait, geen module-replies op desk.
 
