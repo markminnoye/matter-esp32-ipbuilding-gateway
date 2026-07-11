@@ -4,6 +4,7 @@ idf_component_register(
         "board/waveshare_s3_eth.cpp"
         "network/network_manager.cpp"
         "matter/matter_init.cpp"
+        "matter/matter_bridge.cpp"
         "config/config_store.cpp"
         "registry/types.cpp"
         "registry/device_registry.cpp"

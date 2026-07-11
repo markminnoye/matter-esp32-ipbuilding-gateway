@@ -336,4 +336,10 @@ esp_err_t send_dimmer_command(const char *module_ip, int channel, int level_perc
     return send_raw_command(module_ip, Span<const uint8_t>(wire.data(), wire.size()));
 }
 
+esp_err_t send_dimmer_off(const char *module_ip, int channel)
+{
+    const auto wire = payloads::encode_dim_off(channel);
+    return send_raw_command(module_ip, Span<const uint8_t>(wire.data(), wire.size()));
+}
+
 }  // namespace ipbuilding::veldbus

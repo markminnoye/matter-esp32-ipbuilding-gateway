@@ -12,7 +12,7 @@ Desk-lab partial acceptance is possible without IPBuilding VLAN. Full E1 accepta
 |------|------|------|----------------------|
 | **E0** | Project bootstrap | ESP-IDF + esp-matter skeleton, W5500, dual-netif | [`e0-bootstrap-checklist.md`](e0-bootstrap-checklist.md) |
 | **E1** | Veldbus MVP | Payloads, UDP poll, commando's, `devices.json` | *dit document* |
-| **E2** | Matter MVP | esp-matter bridge, state sync, Apple Home + HA | *(nog te maken)* |
+| **E2** | Matter MVP | esp-matter bridge, state sync, Apple Home + HA | [`e2-matter-checklist.md`](e2-matter-checklist.md) |
 | **E3** | Hardening | Watchdog, OTA, PoE (post-MVP) | [`phases.md`](phases.md) |
 | **E4** | Gen 2 | Generic Switch, runtime discovery, touch UI | [`phases.md`](phases.md) (deferred) |
 

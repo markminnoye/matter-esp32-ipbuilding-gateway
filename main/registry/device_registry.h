@@ -31,8 +31,15 @@ struct ButtonEvent {
 
 class DeviceRegistry {
 public:
+    using RelayStateListener = std::function<void(const DeviceKey &, const RelayState &)>;
+    using DimmerStateListener = std::function<void(const DeviceKey &, const DimmerState &)>;
+
     void load_from_modules(const std::vector<ModuleConfig> &modules);
     void handle_packet(const std::string &src_ip, Span<const uint8_t> data);
+
+    // Listeners fire on state *change* only, from the udp_bus_rx task context.
+    void set_relay_state_listener(RelayStateListener listener) { relay_listener_ = std::move(listener); }
+    void set_dimmer_state_listener(DimmerStateListener listener) { dimmer_listener_ = std::move(listener); }
 
     const std::vector<ModuleConfig> &modules() const { return modules_; }
     const std::vector<ModuleConfig> &active_modules() const { return active_modules_; }
@@ -45,6 +52,8 @@ private:
     void handle_dimmer(const std::string &module_ip, Span<const uint8_t> data);
     void handle_input(const std::string &module_ip, Span<const uint8_t> data);
 
+    RelayStateListener relay_listener_;
+    DimmerStateListener dimmer_listener_;
     std::vector<ModuleConfig> modules_;
     std::vector<ModuleConfig> active_modules_;
     std::unordered_map<std::string, ModuleType> module_types_;

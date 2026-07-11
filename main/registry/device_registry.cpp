@@ -96,9 +96,12 @@ void DeviceRegistry::handle_relay(const std::string &module_ip, Span<const uint8
 
     ESP_LOGI(TAG, "REPLY relay %s ch%d state=%s (code=%s)", module_ip.c_str(), status->channel, next.state.c_str(),
              next.state_code.c_str());
-    if (old_it != relay_states_.end() && old_it->second.state != next.state) {
+    if (old_state != next.state) {
         ESP_LOGI(TAG, "REPLY relay %s ch%d changed: %s -> %s", module_ip.c_str(), status->channel, old_state.c_str(),
                  next.state.c_str());
+        if (relay_listener_) {
+            relay_listener_(key, next);
+        }
     }
 }
 
@@ -129,9 +132,12 @@ void DeviceRegistry::handle_dimmer(const std::string &module_ip, Span<const uint
 
     ESP_LOGI(TAG, "REPLY dimmer %s ch%d level=%d%% (code=%s)", module_ip.c_str(), channel, next.level_percent,
              next.internal_value_code.c_str());
-    if (old_it != dimmer_states_.end() && old_it->second.level_percent != next.level_percent) {
+    if (old_level != next.level_percent) {
         ESP_LOGI(TAG, "REPLY dimmer %s ch%d changed: %d -> %d%%", module_ip.c_str(), channel, old_level,
                  next.level_percent);
+        if (dimmer_listener_) {
+            dimmer_listener_(key, next);
+        }
     }
 }
 

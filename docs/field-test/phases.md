@@ -8,7 +8,7 @@ Volledige taken en “done when”-criteria staan in het [design spec §11](../s
 |------|------|------|----------|
 | **E0** | Project bootstrap | ESP-IDF + esp-matter skeleton, W5500, dual-netif | [e0-bootstrap-checklist.md](e0-bootstrap-checklist.md) — **closed** |
 | **E1** | Veldbus MVP | Payloads, UDP poll, commando's, `devices.json` | [e1-veldbus-checklist.md](e1-veldbus-checklist.md) |
-| **E2** | Matter MVP | esp-matter bridge, state sync, Apple Home + HA | *(checklist nog te maken)* |
+| **E2** | Matter MVP | esp-matter bridge, state sync, Apple Home + HA | [e2-matter-checklist.md](e2-matter-checklist.md) |
 | **E3** | Hardening | Watchdog, OTA, PoE (post-MVP) | design spec §11 |
 | **E4** | Gen 2 | Generic Switch, discovery, touch UI | design spec §11 (deferred) |
 

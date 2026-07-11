@@ -25,7 +25,7 @@ static void log_boot_banner()
     uint8_t mac[6] = {};
     esp_read_mac(mac, ESP_MAC_WIFI_STA);
 
-    ESP_LOGI(TAG, "IPBuilding embedded gateway — E1 veldbus MVP");
+    ESP_LOGI(TAG, "IPBuilding embedded gateway — E2 Matter MVP");
     ESP_LOGI(TAG, "Chip: ESP32-S3, cores=%d, revision=%d", chip_info.cores, chip_info.revision);
     ESP_LOGI(TAG, "MAC: %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     ESP_LOGI(TAG, "Free heap: %lu bytes (internal), %lu bytes (PSRAM)", static_cast<unsigned long>(esp_get_free_heap_size()),
@@ -57,7 +57,7 @@ extern "C" void app_main(void)
         ESP_LOGE(TAG, "Veldbus start failed: %s", esp_err_to_name(err));
     }
 
-    err = ipbuilding::matter::init();
+    err = ipbuilding::matter::init(s_registry);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Matter init failed: %s — network stack remains active", esp_err_to_name(err));
     }
