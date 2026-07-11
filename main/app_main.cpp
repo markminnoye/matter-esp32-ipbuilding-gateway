@@ -28,7 +28,8 @@ static void log_boot_banner()
     ESP_LOGI(TAG, "IPBuilding embedded gateway — E2 Matter MVP");
     ESP_LOGI(TAG, "Chip: ESP32-S3, cores=%d, revision=%d", chip_info.cores, chip_info.revision);
     ESP_LOGI(TAG, "MAC: %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    ESP_LOGI(TAG, "Free heap: %lu bytes (internal), %lu bytes (PSRAM)", static_cast<unsigned long>(esp_get_free_heap_size()),
+    ESP_LOGI(TAG, "Free heap: %lu bytes (internal), %lu bytes (PSRAM)",
+             static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
              static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)));
 }
 
@@ -63,7 +64,8 @@ extern "C" void app_main(void)
     }
 
     while (true) {
-        ESP_LOGI(TAG, "Idle — free heap internal=%lu psram=%lu", static_cast<unsigned long>(esp_get_free_heap_size()),
+        ESP_LOGI(TAG, "Idle — free heap internal=%lu psram=%lu",
+                 static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
                  static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)));
         vTaskDelay(pdMS_TO_TICKS(30000));
     }

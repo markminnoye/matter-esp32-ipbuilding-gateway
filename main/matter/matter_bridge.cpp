@@ -120,9 +120,18 @@ endpoint_t *create_bridged_node(node_t *node, endpoint_t *aggregator, const std:
         strncpy(label, source.c_str(), sizeof(label) - 1);
         bdbi_attrs::attribute::create_node_label(bdbi, label, strlen(label));
 
+        // bridged_node::create already creates UniqueID with a generated value;
+        // create() would return that attribute unchanged (plus a warning), so
+        // overwrite the value instead.
         char unique_id[bdbi_attrs::k_max_unique_id_length + 1] = {};
         strncpy(unique_id, entity_id.c_str(), sizeof(unique_id) - 1);
-        bdbi_attrs::attribute::create_unique_id(bdbi, unique_id, strlen(unique_id));
+        attribute_t *uid_attr = attribute::get(bdbi, BridgedDeviceBasicInformation::Attributes::UniqueID::Id);
+        if (uid_attr != nullptr) {
+            esp_matter_attr_val_t uid_val = esp_matter_char_str(unique_id, strlen(unique_id));
+            attribute::set_val(uid_attr, &uid_val, false);
+        } else {
+            bdbi_attrs::attribute::create_unique_id(bdbi, unique_id, strlen(unique_id));
+        }
     } else {
         ESP_LOGW(TAG, "No BridgedDeviceBasicInformation cluster on %s — no NodeLabel", entity_id.c_str());
     }
@@ -336,10 +345,12 @@ esp_err_t handle_attribute_update(attribute::callback_type_t type, uint16_t endp
         err = command_on_off(*device, val->val.b);
     } else if (cluster_id == LevelControl::Id && attribute_id == LevelControl::Attributes::CurrentLevel::Id &&
                device->kind == BridgeKind::Dimmer) {
+        // percent 0 (level 1 at cluster init, or slider minimum): nothing to send —
+        // off goes via OnOff. Log only when a command actually goes out.
         const int percent = matter_level_to_percent(val->val.u8);
-        ESP_LOGI(TAG, "Matter -> veldbus: ep=%u \"%s\" level=%u (%d%%)", endpoint_id, device->name.c_str(),
-                 val->val.u8, percent);
         if (percent > 0) {
+            ESP_LOGI(TAG, "Matter -> veldbus: ep=%u \"%s\" level=%u (%d%%)", endpoint_id, device->name.c_str(),
+                     val->val.u8, percent);
             device->last_level_percent = percent;
             err = veldbus::send_dimmer_command(device->key.module_ip.c_str(), device->key.channel, percent);
         }
