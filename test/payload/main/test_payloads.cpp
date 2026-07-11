@@ -111,6 +111,15 @@ TEST_CASE("input button press", "[payloads]")
     TEST_ASSERT_EQUAL_STRING("2f8185190000df", event->id_hex.c_str());
 }
 
+TEST_CASE("input poll idle reply", "[payloads]")
+{
+    const std::vector<uint8_t> raw = {0x49, 0x02, 0x52, 0x05, 0x02, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x45};
+    const auto event = ipbuilding::veldbus::payloads::decode_input_event(as_span(raw));
+    TEST_ASSERT_TRUE(event.has_value());
+    TEST_ASSERT_EQUAL(static_cast<int>(InputEventType::IdleStatus), static_cast<int>(event->type));
+    TEST_ASSERT_EQUAL_STRING("050204", event->status_bytes_hex.c_str());
+}
+
 extern "C" void app_main(void)
 {
     unity_run_menu();

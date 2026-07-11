@@ -4,6 +4,8 @@
 #include "poll_payloads.h"
 #include "registry/types.h"
 #include "span.h"
+#include "veldbus/payloads/dimmer.h"
+#include "veldbus/payloads/relay.h"
 
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -121,10 +123,28 @@ std::string format_poll_payload(Span<const uint8_t> payload)
     return format_payload_preview(payload, 16);
 }
 
+void drain_command_queue()
+{
+    if (s_command_queue == nullptr) {
+        return;
+    }
+
+    OutboundCommand queued = {};
+    while (xQueueReceive(s_command_queue, &queued, 0) == pdTRUE) {
+        const auto payload = Span<const uint8_t>(queued.payload, queued.length);
+        const esp_err_t err = send_datagram(queued.ip, payload);
+        if (err == ESP_OK) {
+            ESP_LOGI(TAG, "TX command -> %s payload=%s", queued.ip, format_poll_payload(payload).c_str());
+        }
+    }
+}
+
 void poll_task(void *arg)
 {
     (void)arg;
     while (s_running) {
+        drain_command_queue();
+
         if (s_registry != nullptr) {
             for (const auto &module : s_registry->active_modules()) {
                 const auto payload = poll_payload_for_type(registry::module_type_to_string(module.type));
@@ -137,11 +157,6 @@ void poll_task(void *arg)
                              registry::module_type_to_string(module.type), format_poll_payload(payload).c_str());
                 }
             }
-        }
-
-        OutboundCommand queued = {};
-        while (xQueueReceive(s_command_queue, &queued, 0) == pdTRUE) {
-            send_datagram(queued.ip, Span<const uint8_t>(queued.payload, queued.length));
         }
 
         vTaskDelay(pdMS_TO_TICKS(kPollIntervalMs));
@@ -282,6 +297,43 @@ void stop()
         s_socket = -1;
     }
     s_registry = nullptr;
+}
+
+esp_err_t send_raw_command(const char *module_ip, Span<const uint8_t> payload)
+{
+    if (!s_running || s_command_queue == nullptr) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (module_ip == nullptr || module_ip[0] == '\0' || payload.empty()) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (payload.size() > kMaxDatagram) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    OutboundCommand queued = {};
+    strncpy(queued.ip, module_ip, sizeof(queued.ip) - 1);
+    queued.length = payload.size();
+    memcpy(queued.payload, payload.data(), payload.size());
+
+    if (xQueueSend(s_command_queue, &queued, 0) != pdTRUE) {
+        ESP_LOGW(TAG, "Command queue full for %s", module_ip);
+        return ESP_ERR_NO_MEM;
+    }
+
+    return ESP_OK;
+}
+
+esp_err_t send_relay_command(const char *module_ip, int channel, payloads::RelayAction action)
+{
+    const auto wire = payloads::encode_relay_command(payloads::RelayCommand{channel, action});
+    return send_raw_command(module_ip, Span<const uint8_t>(wire.data(), wire.size()));
+}
+
+esp_err_t send_dimmer_command(const char *module_ip, int channel, int level_percent)
+{
+    const auto wire = payloads::encode_dim_command(payloads::DimmerCommand{channel, level_percent});
+    return send_raw_command(module_ip, Span<const uint8_t>(wire.data(), wire.size()));
 }
 
 }  // namespace ipbuilding::veldbus

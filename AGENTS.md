@@ -25,15 +25,16 @@
 - CI: GitHub Actions `idf.py build` for esp32s3
 - **Veldtest evidence:** [`docs/field-test/evidence/2026-07-11-e0-bootstrap.md`](docs/field-test/evidence/2026-07-11-e0-bootstrap.md)
 
-**E1 veldbus MVP — desk-lab + VLAN poll accepted (2026-07-11):**
-- Payload port, ConfigStore, DeviceRegistry, UdpBusManager (commit `23ad6c2`)
+**E1 veldbus MVP — E1.5 input accepted (2026-07-11); full E1 open on PCAP (E1.2):**
+- Payload port, ConfigStore, DeviceRegistry, UdpBusManager + command TX API (`send_relay_command`, `send_dimmer_command`)
 - Poll-ack decoder fix: `P000000000` / `I0154999` no longer logged as undecoded
-- **Veldtest evidence:** [`docs/field-test/evidence/2026-07-11-e1-desk-lab.md`](docs/field-test/evidence/2026-07-11-e1-desk-lab.md) (desk + VLAN poll TX/RX)
-- **Nog open:** PCAP, fysieke actuatie (E1.3), input `B-…E`
+- Input poll fix: IP1100 included in poll loop; idle reply 13-byte decoder
+- Production `devices.json` from Python gateway `192.168.1.3:8080` (28 channels)
+- **Veldtest evidence:** desk/poll [`2026-07-11-e1-desk-lab.md`](docs/field-test/evidence/2026-07-11-e1-desk-lab.md) · commands [`2026-07-11-e1-vlan-commands.md`](docs/field-test/evidence/2026-07-11-e1-vlan-commands.md) · input [`2026-07-11-e1-input-listener.md`](docs/field-test/evidence/2026-07-11-e1-input-listener.md)
+- **Nog open:** PCAP (E1.2)
+- **RE bevinding:** input centrale-claim is poll-gated → actuator-only hub mogelijk (design spec §4.3); feature [IPBuilding-Gateway #16](https://github.com/markminnoye/IPBuilding-Gateway/issues/16) — **Python gateway eerst**, embedded later
 
-**Interim lab:** ontwikkeling vanuit **thuis-LAN** (WiFi); VLAN poll bevestigd op `10.10.1.0/24` — relay `.30` + dimmer `.40` reageren.
-
-**Volgende fase:** E1.3 command test (VLAN) → E2 Matter bridge
+**Volgende fase:** **E2 Matter bridge** — veldbus-mapped endpoints + state sync
 
 **Open beslissingen:**
 - **H1:** WiFi-bereik in metalen zekeringskast (desk RSSI -64 dBm; cabinet test open)

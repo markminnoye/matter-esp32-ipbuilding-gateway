@@ -24,15 +24,27 @@ bool is_input_poll(Span<const uint8_t> data)
 
 bool is_input_idle_reply(Span<const uint8_t> data)
 {
-    if (data.size() != 14 || data[0] != 'I' || data[1] != 0x02 || data[13] != 'E') {
-        return false;
-    }
-    for (size_t i = 9; i <= 12; ++i) {
-        if (data[i] != 0x00) {
-            return false;
+    // Wire format (13 bytes, field-captured 2026-07-11): I\x02 R <3 status> <6×0x00> E
+    if (data.size() == 13 && data[0] == 'I' && data[1] == 0x02 && data[2] == 'R' && data[12] == 'E') {
+        for (size_t i = 6; i <= 11; ++i) {
+            if (data[i] != 0x00) {
+                return false;
+            }
         }
+        return true;
     }
-    return true;
+
+    // Legacy 14-byte variant (unit-test / older captures).
+    if (data.size() == 14 && data[0] == 'I' && data[1] == 0x02 && data[13] == 'E') {
+        for (size_t i = 9; i <= 12; ++i) {
+            if (data[i] != 0x00) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    return false;
 }
 
 bool is_input_button_event(Span<const uint8_t> data, bool *is_press)

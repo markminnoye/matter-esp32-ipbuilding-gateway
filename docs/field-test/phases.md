@@ -29,7 +29,7 @@ Volledige taken en “done when”-criteria staan in het [design spec §11](../s
 | E1.2 | UDP poll naar `10.10.1.30` / `.40` | PCAP of mirror bevestigt `P0000` |
 | E1.3 | Relay `S`/`C` + dimmer level command | Fysiek licht schakelt |
 | E1.4 | `devices.json` laden van LittleFS | Alleen `active:true` kanalen in registry |
-| E1.5 | Input listener `B-…E` (log only) | Serial log bij druk knop |
+| E1.5 | Input listener `B-…E` (log only) | Serial log bij druk knop — ☑ [`2026-07-11-e1-input-listener.md`](evidence/2026-07-11-e1-input-listener.md) |
 
 ## E2 — Matter MVP
 

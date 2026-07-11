@@ -11,6 +11,7 @@ idf_component_register(
         "veldbus/payloads/dimmer.cpp"
         "veldbus/payloads/input.cpp"
         "veldbus/udp_bus_manager.cpp"
+        "lab/e1_command_test.cpp"
     INCLUDE_DIRS
         "."
         "board"
@@ -19,6 +20,7 @@ idf_component_register(
         "config"
         "registry"
         "veldbus"
+        "lab"
     REQUIRES
         nvs_flash
         esp_netif

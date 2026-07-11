@@ -127,9 +127,28 @@ ESP32-S3-ETH
 |-------|--------|
 | Hub-IP | `10.10.1.1` is vrij: de IPBox is uitgeschakeld en de huidige Python-gateway zit op een ander VLAN (bereikt de veldbus via inter-VLAN routing, niet via dit adres) — embedded hub kan `10.10.1.1` rechtstreeks binden, **geen conflict** |
 | Python-gateway (Spoor A) | Blijft actief op de HA-installatie via inter-VLAN routing naar `10.10.1.0/24`; embedded hub is een onafhankelijk, parallel pad — geen IP-conflict, wel twee controllers die dezelfde modules kunnen aansturen (vergelijkbaar met twee lichtschakelaars op één circuit) |
+| Hub-rol split (actuator-only) | Een hub kan relay/dimmer pollen en aansturen **zonder** input-modules te pollen — IP1100 blijft dan buiten slave-modus voor die hub (knoppen lokaal via EEPROM, of andere centrale pollt `I0000`). Zie §4.3 |
 | UniFi | Eén Ethernet-kabel naar managed switch op IPBuilding-VLAN; PoE-levering op die poort **bevestigd** (§5.3 H3) |
 | Firewall | Geen northbound-poort op chip; Matter gebruikt WiFi naar thuis-LAN |
 | Mirror captures | Standaard `7←15` bij regressie ([playbook](https://github.com/markminnoye/IPBuilding-Gateway/blob/main/resources_and_docs/workflows/2026-05-14_relay_run_a_operational_playbook.md)) |
+
+### 4.3 Hub-rol en coexistence (veldtest 2026-07-11)
+
+Veldbus-hub-rol is **per moduletype configureerbaar** via poll-gedrag. De IP1100 (input) claimt een centrale alleen wanneer die hub `I0000` pollt; zonder input-poll blijven knoppen lokaal actief (EEPROM/autonoom) en komen er geen `B-…E`-events naar die hub.
+
+| Modus | Poll | Effect |
+|-------|------|--------|
+| **Full hub** | relay + dimmer + input | Slave-modus; `B-…E` naar deze hub |
+| **Actuators only** | relay + dimmer; **geen** input-poll | Relay/dimmer onder deze hub; inputs niet overgenomen |
+| **Input delegated** | input alleen op andere centrale | Python gateway `managed: false` op input; embedded of legacy centrale ontvangt knoppen |
+
+**Implementatie-prioriteit:** feature hoort primair in **Python gateway (Spoor B)** — [IPBuilding-Gateway #16](https://github.com/markminnoye/IPBuilding-Gateway/issues/16). Embedded firmware volgt in fase 2 (niet blokkerend voor E2).
+
+**Veldtest-evidence:** [`2026-07-11-e1-input-listener.md`](../field-test/evidence/2026-07-11-e1-input-listener.md) — zonder input-poll geen `B-…E`; met poll press/release op `10.10.1.50`.
+
+**Config-voorstel:** per-module `managed: true|false` of preset `hub_role: full|actuators_only`. **Implementatie-prioriteit:** Python gateway (Spoor B) eerst — [IPBuilding-Gateway #16](https://github.com/markminnoye/IPBuilding-Gateway/issues/16); embedded (Spoor C) in fase 2. Draft: [`2026-07-11-hub-role-feature-draft.md`](../field-test/evidence/2026-07-11-hub-role-feature-draft.md).
+
+**Open RE:** exact IP1100-registratiemechanisme (hardcoded `10.10.1.1` vs learned-from-poll); dual-poller gedrag. PCAP aanbevolen.
 
 ### WiFi in metalen zekeringskast
 

@@ -42,12 +42,14 @@ void DeviceRegistry::load_from_modules(const std::vector<ModuleConfig> &modules)
             }
         }
 
-        if (!active_module.channels.empty()) {
+        // Input modules have no config channels but must still be polled (I0000) so the
+        // IP1100 stays in slave mode and sends unsolicited B-…E events to the hub.
+        if (!active_module.channels.empty() || module.type == ModuleType::Input) {
             active_modules_.push_back(std::move(active_module));
         }
     }
 
-    ESP_LOGI(TAG, "Loaded %zu modules (%zu active with channels)", modules_.size(), active_modules_.size());
+    ESP_LOGI(TAG, "Loaded %zu modules (%zu in poll loop)", modules_.size(), active_modules_.size());
 }
 
 void DeviceRegistry::handle_packet(const std::string &src_ip, Span<const uint8_t> data)
@@ -137,6 +139,12 @@ void DeviceRegistry::handle_input(const std::string &module_ip, Span<const uint8
 {
     const auto event = veldbus::payloads::decode_input_event(data);
     if (!event) {
+        ESP_LOGW(TAG, "RX reply from input %s: undecoded payload", module_ip.c_str());
+        return;
+    }
+
+    if (event->type == veldbus::payloads::InputEventType::IdleStatus) {
+        ESP_LOGD(TAG, "REPLY input %s idle heartbeat (no button activity)", module_ip.c_str());
         return;
     }
 
