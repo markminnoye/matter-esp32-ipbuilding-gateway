@@ -96,11 +96,15 @@ bool is_dimmer_idle_poll(Span<const uint8_t> data)
     if (text == "I9900") {
         return true;
     }
-    return text.size() == 8 && text.rfind("I0154", 0) == 0 && text.substr(4) == kDimmerIdleCode;
+    return text.size() == 8 && text.rfind("I0154", 0) == 0 && text.substr(5, 3) == kDimmerIdleCode;
 }
 
 std::optional<DimmerStatus> decode_dimmer_status(Span<const uint8_t> data)
 {
+    if (is_dimmer_idle_poll(data)) {
+        return std::nullopt;
+    }
+
     if (!is_ascii_text(data)) {
         return std::nullopt;
     }
@@ -110,8 +114,8 @@ std::optional<DimmerStatus> decode_dimmer_status(Span<const uint8_t> data)
         return std::nullopt;
     }
 
-    const std::string code = std::string(text.substr(4));
-    if (code == kDimmerIdleCode || code.size() != 3) {
+    const std::string code = std::string(text.substr(5, 3));
+    if (code.size() != 3) {
         return std::nullopt;
     }
 

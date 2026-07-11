@@ -18,21 +18,22 @@
 
 ## Status
 
-**E0 bootstrap — afgerond (2026-07-11, desk lab):**
+**E0 bootstrap — closed (2026-07-11):**
 - Firmware skeleton: ESP-IDF + managed esp-matter component
 - W5500 board layer + dual-netif network manager (ETH `10.10.1.1` + WiFi STA)
 - Matter placeholder On/Off Light endpoint (E2 replaces with veldbus-mapped endpoints)
 - CI: GitHub Actions `idf.py build` for esp32s3
 - **Veldtest evidence:** [`docs/field-test/evidence/2026-07-11-e0-bootstrap.md`](docs/field-test/evidence/2026-07-11-e0-bootstrap.md)
 
-**E1 veldbus MVP — desk-lab accepted (2026-07-11):**
+**E1 veldbus MVP — desk-lab + VLAN poll accepted (2026-07-11):**
 - Payload port, ConfigStore, DeviceRegistry, UdpBusManager (commit `23ad6c2`)
-- **Veldtest evidence:** [`docs/field-test/evidence/2026-07-11-e1-desk-lab.md`](docs/field-test/evidence/2026-07-11-e1-desk-lab.md)
-- **Hardware-validatie uitgesteld** tot IPBuilding VLAN
+- Poll-ack decoder fix: `P000000000` / `I0154999` no longer logged as undecoded
+- **Veldtest evidence:** [`docs/field-test/evidence/2026-07-11-e1-desk-lab.md`](docs/field-test/evidence/2026-07-11-e1-desk-lab.md) (desk + VLAN poll TX/RX)
+- **Nog open:** PCAP, fysieke actuatie (E1.3), input `B-…E`
 
-**Interim lab:** ontwikkeling vanuit **thuis-LAN** (WiFi); IPBuilding VLAN (`10.10.1.0/24`) nog niet op testbench — veldbus poll draait, geen module-replies op desk.
+**Interim lab:** ontwikkeling vanuit **thuis-LAN** (WiFi); VLAN poll bevestigd op `10.10.1.0/24` — relay `.30` + dimmer `.40` reageren.
 
-**Volgende fase:** E1 hardware-acceptatie (VLAN) → E2 Matter bridge
+**Volgende fase:** E1.3 command test (VLAN) → E2 Matter bridge
 
 **Open beslissingen:**
 - **H1:** WiFi-bereik in metalen zekeringskast (desk RSSI -64 dBm; cabinet test open)
@@ -66,7 +67,7 @@
 3. **E2 — Matter MVP** — esp-matter bridge, state sync veldbus ↔ Matter
 4. **E3 — Hardening** — watchdog, OTA, PoE-test (post-MVP)
 
-Zie implementatiefasen in het [design document](docs/superpowers/specs/2026-07-09-embedded-ipbuilding-gateway-design.md) §11.
+Zie [implementatiefasen (E0–E4)](docs/field-test/phases.md) — samenvatting; detail in [design spec §11](docs/superpowers/specs/2026-07-09-embedded-ipbuilding-gateway-design.md#implementatiefasen).
 
 ---
 

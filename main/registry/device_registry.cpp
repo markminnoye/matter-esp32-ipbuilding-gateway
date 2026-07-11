@@ -54,6 +54,7 @@ void DeviceRegistry::handle_packet(const std::string &src_ip, Span<const uint8_t
 {
     const auto it = module_types_.find(src_ip);
     if (it == module_types_.end()) {
+        ESP_LOGW(TAG, "RX reply from unconfigured module %s (not in devices.json)", src_ip.c_str());
         return;
     }
 
@@ -74,8 +75,14 @@ void DeviceRegistry::handle_packet(const std::string &src_ip, Span<const uint8_t
 
 void DeviceRegistry::handle_relay(const std::string &module_ip, Span<const uint8_t> data)
 {
+    if (veldbus::payloads::is_relay_poll_echo(data)) {
+        ESP_LOGD(TAG, "REPLY relay %s poll-ack (P000000000 — no channel state on poll)", module_ip.c_str());
+        return;
+    }
+
     const auto status = veldbus::payloads::decode_relay_status(data);
     if (!status) {
+        ESP_LOGW(TAG, "RX reply from relay %s: undecoded payload", module_ip.c_str());
         return;
     }
 
@@ -85,8 +92,10 @@ void DeviceRegistry::handle_relay(const std::string &module_ip, Span<const uint8
     RelayState next{status->state, status->state_code};
     relay_states_[key] = next;
 
-    if (old_it == relay_states_.end() || old_it->second.state != next.state) {
-        ESP_LOGI(TAG, "Relay %s ch%d: %s -> %s", module_ip.c_str(), status->channel, old_state.c_str(),
+    ESP_LOGI(TAG, "REPLY relay %s ch%d state=%s (code=%s)", module_ip.c_str(), status->channel, next.state.c_str(),
+             next.state_code.c_str());
+    if (old_it != relay_states_.end() && old_it->second.state != next.state) {
+        ESP_LOGI(TAG, "REPLY relay %s ch%d changed: %s -> %s", module_ip.c_str(), status->channel, old_state.c_str(),
                  next.state.c_str());
     }
 }
@@ -94,11 +103,13 @@ void DeviceRegistry::handle_relay(const std::string &module_ip, Span<const uint8
 void DeviceRegistry::handle_dimmer(const std::string &module_ip, Span<const uint8_t> data)
 {
     if (veldbus::payloads::is_dimmer_idle_poll(data)) {
+        ESP_LOGD(TAG, "REPLY dimmer %s idle heartbeat (I0154999 — no level on poll)", module_ip.c_str());
         return;
     }
 
     const auto status = veldbus::payloads::decode_dimmer_status(data);
     if (!status) {
+        ESP_LOGW(TAG, "RX reply from dimmer %s: undecoded payload", module_ip.c_str());
         return;
     }
 
@@ -114,8 +125,11 @@ void DeviceRegistry::handle_dimmer(const std::string &module_ip, Span<const uint
     DimmerState next{status->level_percent, status->internal_value_code};
     dimmer_states_[key] = next;
 
-    if (old_it == dimmer_states_.end() || old_it->second.level_percent != next.level_percent) {
-        ESP_LOGI(TAG, "Dimmer %s ch%d: %d -> %d%%", module_ip.c_str(), channel, old_level, next.level_percent);
+    ESP_LOGI(TAG, "REPLY dimmer %s ch%d level=%d%% (code=%s)", module_ip.c_str(), channel, next.level_percent,
+             next.internal_value_code.c_str());
+    if (old_it != dimmer_states_.end() && old_it->second.level_percent != next.level_percent) {
+        ESP_LOGI(TAG, "REPLY dimmer %s ch%d changed: %d -> %d%%", module_ip.c_str(), channel, old_level,
+                 next.level_percent);
     }
 }
 
@@ -127,9 +141,9 @@ void DeviceRegistry::handle_input(const std::string &module_ip, Span<const uint8
     }
 
     if (event->type == veldbus::payloads::InputEventType::Press) {
-        ESP_LOGI(TAG, "Input %s button %s: press", module_ip.c_str(), event->id_hex.c_str());
+        ESP_LOGI(TAG, "REPLY input %s button %s: press", module_ip.c_str(), event->id_hex.c_str());
     } else if (event->type == veldbus::payloads::InputEventType::Release) {
-        ESP_LOGI(TAG, "Input %s button %s: release", module_ip.c_str(), event->id_hex.c_str());
+        ESP_LOGI(TAG, "REPLY input %s button %s: release", module_ip.c_str(), event->id_hex.c_str());
     }
 }
 

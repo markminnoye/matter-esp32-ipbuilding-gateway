@@ -72,8 +72,9 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base, int32_t ev
     case ETHERNET_EVENT_CONNECTED: {
         uint8_t mac[6] = {};
         esp_eth_ioctl(eth_handle, ETH_CMD_G_MAC_ADDR, mac);
-        ESP_LOGI(TAG, "Ethernet link up, MAC %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4],
-                 mac[5]);
+        ESP_LOGI(TAG, "Ethernet link up, MAC %02x:%02x:%02x:%02x:%02x:%02x (field-bus VLAN ready)", mac[0], mac[1],
+                 mac[2], mac[3], mac[4], mac[5]);
+        xEventGroupSetBits(s_event_group, kEthConnectedBit);
         break;
     }
     case ETHERNET_EVENT_DISCONNECTED:
@@ -152,7 +153,6 @@ static esp_err_t init_ethernet()
 
     ESP_RETURN_ON_ERROR(esp_eth_start(s_eth_handle), TAG, "esp_eth_start failed");
 
-    xEventGroupSetBits(s_event_group, kEthConnectedBit);
     log_ip_info("ETH", s_eth_netif);
     return ESP_OK;
 }
@@ -196,7 +196,7 @@ esp_err_t init()
     EventBits_t bits = xEventGroupWaitBits(s_event_group, kEthConnectedBit | kWifiConnectedBit, pdFALSE, pdTRUE,
                                            pdMS_TO_TICKS(30000));
     if ((bits & kEthConnectedBit) == 0) {
-        ESP_LOGW(TAG, "Ethernet not confirmed within timeout (static IP may still be active)");
+        ESP_LOGW(TAG, "Ethernet link not up within timeout — veldbus may fail until link is ready");
     }
     if ((bits & kWifiConnectedBit) == 0) {
         ESP_LOGW(TAG, "WiFi not connected within timeout — check CONFIG_WIFI_SSID/PASSWORD in menuconfig");

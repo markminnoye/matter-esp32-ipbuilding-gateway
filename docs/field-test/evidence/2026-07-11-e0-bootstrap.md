@@ -18,7 +18,7 @@ Lab test on Waveshare ESP32-S3-ETH at desk. Firmware branch `development`, commi
 | Check | Pass |
 |-------|------|
 | `idf.py build` succeeds locally | ☑ |
-| GitHub Actions CI build green | ☐ (not pushed yet) |
+| GitHub Actions CI build green | ☑ |
 
 ## E0.2 — Matter hello (serial)
 
@@ -36,7 +36,7 @@ Lab test on Waveshare ESP32-S3-ETH at desk. Firmware branch `development`, commi
 | LINK LED on RJ45 port | ☑ | |
 | Serial: `Ethernet link up` | ☑ | |
 | Serial: `ETH: ip=10.10.1.1` | ☑ | Static config as designed |
-| `ping 10.10.1.1` from IPBuilding VLAN | ☐ | **Deferred** — desk has home LAN only |
+| `ping 10.10.1.1` from IPBuilding VLAN | ☑ | Validated indirectly via E1 VLAN poll TX/RX (2026-07-11) |
 
 ## E0.4 — Dual-netif WiFi
 
@@ -60,4 +60,6 @@ Until IPBuilding VLAN is available at the test bench:
 
 ## Verdict
 
-**E0 accepted** for desk lab: dual-netif up, Matter stack stable, commissioning window open. VLAN ping and cabinet RSSI remain follow-ups before production install.
+**E0 closed (2026-07-11):** dual-netif up, Matter stack stable, commissioning window open, field-bus Ethernet validated on IPBuilding VLAN (E1 poll session).
+
+**Post-E0 follow-ups (not E0 blockers):** H1 cabinet WiFi RSSI test; production install checklist.

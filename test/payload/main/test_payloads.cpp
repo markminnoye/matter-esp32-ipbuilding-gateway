@@ -64,6 +64,13 @@ TEST_CASE("relay encode on", "[payloads]")
     TEST_ASSERT_TRUE(bytes_equal(wire, {'S', '0', '0', '0', '0'}));
 }
 
+TEST_CASE("relay poll echo", "[payloads]")
+{
+    const std::vector<uint8_t> payload = {'P', '0', '0', '0', '0', '0', '0', '0', '0', '0'};
+    TEST_ASSERT_TRUE(ipbuilding::veldbus::payloads::is_relay_poll_echo(as_span(payload)));
+    TEST_ASSERT_FALSE(ipbuilding::veldbus::payloads::decode_relay_status(as_span(payload)).has_value());
+}
+
 TEST_CASE("dimmer status 30 percent", "[payloads]")
 {
     const std::vector<uint8_t> payload = {'I', '0', '1', '5', '4', '0', '3', '0'};

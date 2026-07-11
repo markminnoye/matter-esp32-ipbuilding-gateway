@@ -13,6 +13,7 @@
 #include "lwip/sockets.h"
 #include "sdkconfig.h"
 
+#include <cstdio>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -78,6 +79,48 @@ esp_err_t send_datagram(const char *module_ip, Span<const uint8_t> payload)
     return ESP_OK;
 }
 
+std::string format_payload_preview(Span<const uint8_t> data, std::size_t max_len = 48)
+{
+    if (data.empty()) {
+        return "(empty)";
+    }
+
+    const std::size_t len = data.size() > max_len ? max_len : data.size();
+    bool printable = true;
+    for (std::size_t i = 0; i < len; ++i) {
+        const uint8_t byte = data[i];
+        if (byte < 0x20 || byte > 0x7E) {
+            printable = false;
+            break;
+        }
+    }
+
+    if (printable) {
+        std::string text(reinterpret_cast<const char *>(data.data()), len);
+        if (data.size() > max_len) {
+            text += "…";
+        }
+        return text;
+    }
+
+    std::string hex;
+    hex.reserve(len * 2 + 4);
+    for (std::size_t i = 0; i < len; ++i) {
+        char buf[4] = {};
+        snprintf(buf, sizeof(buf), "%02x", data[i]);
+        hex += buf;
+    }
+    if (data.size() > max_len) {
+        hex += "…";
+    }
+    return hex;
+}
+
+std::string format_poll_payload(Span<const uint8_t> payload)
+{
+    return format_payload_preview(payload, 16);
+}
+
 void poll_task(void *arg)
 {
     (void)arg;
@@ -90,7 +133,8 @@ void poll_task(void *arg)
                 }
                 const esp_err_t err = send_datagram(module.ip.c_str(), payload);
                 if (err == ESP_OK) {
-                    ESP_LOGI(TAG, "Poll %s (%s)", module.ip.c_str(), registry::module_type_to_string(module.type));
+                    ESP_LOGI(TAG, "TX poll -> %s (%s) payload=%s", module.ip.c_str(),
+                             registry::module_type_to_string(module.type), format_poll_payload(payload).c_str());
                 }
             }
         }
@@ -127,8 +171,14 @@ void rx_task(void *arg)
 
         char ip_str[INET_ADDRSTRLEN] = {};
         inet_ntoa_r(source.sin_addr, ip_str, sizeof(ip_str));
+        const int src_port = ntohs(source.sin_port);
+        const auto packet = Span<const uint8_t>(buffer.data(), static_cast<std::size_t>(received));
+
+        ESP_LOGI(TAG, "RX reply <- %s:%d (%d bytes) data=%s", ip_str, src_port, received,
+                 format_payload_preview(packet).c_str());
+
         if (s_registry != nullptr) {
-            s_registry->handle_packet(ip_str, Span<const uint8_t>(buffer.data(), static_cast<std::size_t>(received)));
+            s_registry->handle_packet(ip_str, packet);
         }
     }
     vTaskDelete(nullptr);

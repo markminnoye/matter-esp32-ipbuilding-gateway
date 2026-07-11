@@ -118,6 +118,19 @@ std::vector<uint8_t> encode_relay_command(const RelayCommand &cmd)
     return std::vector<uint8_t>(buffer, buffer + 5);
 }
 
+bool is_relay_poll_echo(Span<const uint8_t> data)
+{
+    if (!is_ascii_text(data) || data.size() != 10 || data[0] != 'P') {
+        return false;
+    }
+    for (std::size_t i = 1; i < 10; ++i) {
+        if (data[i] < '0' || data[i] > '9') {
+            return false;
+        }
+    }
+    return true;
+}
+
 std::optional<RelayStatus> decode_relay_status(Span<const uint8_t> data)
 {
     const auto core_bytes = strip_j_envelope(data);

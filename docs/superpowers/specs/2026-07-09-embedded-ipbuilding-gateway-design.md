@@ -352,6 +352,8 @@ matter-esp32-ipbuilding-gateway/
 
 ---
 
+<a id="implementatiefasen"></a>
+
 ## 11. Implementatiefasen
 
 ### Fase E0 — Project bootstrap (agent-start)
