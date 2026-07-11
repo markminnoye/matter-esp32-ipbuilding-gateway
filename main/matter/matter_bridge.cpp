@@ -33,6 +33,10 @@ struct BridgedDevice {
     BridgeKind kind = BridgeKind::RelayLight;
     registry::DeviceKey key;
     std::string name;
+    // Last non-zero dimmer level. CurrentLevel stays retained while off (Matter
+    // semantics: the slider shows the brightness a bare "on" restores), so the
+    // restore value must match what the controller displays.
+    int last_level_percent = 0;
 };
 
 std::vector<BridgedDevice> s_devices;
@@ -48,9 +52,9 @@ constexpr uint8_t kFanModeOff = chip::to_underlying(FanControl::FanModeEnum::kOf
 constexpr uint8_t kFanModeHigh = chip::to_underlying(FanControl::FanModeEnum::kHigh);
 constexpr uint8_t kFanModeSequenceOffHigh = chip::to_underlying(FanControl::FanModeSequenceEnum::kOffHigh);
 
-const BridgedDevice *find_by_endpoint(uint16_t endpoint_id)
+BridgedDevice *find_by_endpoint(uint16_t endpoint_id)
 {
-    for (const auto &device : s_devices) {
+    for (auto &device : s_devices) {
         if (device.endpoint_id == endpoint_id) {
             return &device;
         }
@@ -58,9 +62,9 @@ const BridgedDevice *find_by_endpoint(uint16_t endpoint_id)
     return nullptr;
 }
 
-const BridgedDevice *find_by_key(const registry::DeviceKey &key, BridgeKind *kind_out = nullptr)
+BridgedDevice *find_by_key(const registry::DeviceKey &key, BridgeKind *kind_out = nullptr)
 {
-    for (const auto &device : s_devices) {
+    for (auto &device : s_devices) {
         if (device.key == key) {
             if (kind_out != nullptr) {
                 *kind_out = device.kind;
@@ -236,9 +240,12 @@ void on_relay_state(const registry::DeviceKey &key, const registry::RelayState &
 
 void on_dimmer_state(const registry::DeviceKey &key, const registry::DimmerState &state)
 {
-    const BridgedDevice *device = find_by_key(key);
+    BridgedDevice *device = find_by_key(key);
     if (device == nullptr || state.level_percent < 0) {
         return;
+    }
+    if (state.level_percent > 0) {
+        device->last_level_percent = state.level_percent;
     }
 
     ESP_LOGI(TAG, "Sync veldbus -> Matter: %s ep=%u level=%d%%",
@@ -260,13 +267,9 @@ esp_err_t command_on_off(const BridgedDevice &device, bool on)
         if (!on) {
             return veldbus::send_dimmer_off(device.key.module_ip.c_str(), device.key.channel);
         }
-        int percent = 100;
-        if (s_registry != nullptr) {
-            const auto state = s_registry->get_dimmer_state(device.key);
-            if (state && state->level_percent > 0) {
-                percent = state->level_percent;
-            }
-        }
+        // Bare "on": restore the level the controller's slider shows (retained
+        // CurrentLevel = last non-zero level); 100% only when never dimmed yet.
+        const int percent = device.last_level_percent > 0 ? device.last_level_percent : 100;
         return veldbus::send_dimmer_command(device.key.module_ip.c_str(), device.key.channel, percent);
     }
 
@@ -321,7 +324,7 @@ esp_err_t handle_attribute_update(attribute::callback_type_t type, uint16_t endp
         return ESP_OK;
     }
 
-    const BridgedDevice *device = find_by_endpoint(endpoint_id);
+    BridgedDevice *device = find_by_endpoint(endpoint_id);
     if (device == nullptr) {
         return ESP_OK;
     }
@@ -337,16 +340,27 @@ esp_err_t handle_attribute_update(attribute::callback_type_t type, uint16_t endp
         ESP_LOGI(TAG, "Matter -> veldbus: ep=%u \"%s\" level=%u (%d%%)", endpoint_id, device->name.c_str(),
                  val->val.u8, percent);
         if (percent > 0) {
+            device->last_level_percent = percent;
             err = veldbus::send_dimmer_command(device->key.module_ip.c_str(), device->key.channel, percent);
         }
-    } else if (cluster_id == FanControl::Id && attribute_id == FanControl::Attributes::FanMode::Id &&
-               device->kind == BridgeKind::RelayFan) {
-        // PercentSetting writes are mapped to FanMode by the fan-control server,
-        // so handling FanMode alone covers both paths without duplicate commands.
-        const bool on = val->val.u8 != kFanModeOff;
-        ESP_LOGI(TAG, "Matter -> veldbus: ep=%u \"%s\" fan_mode=%u -> %s", endpoint_id, device->name.c_str(),
-                 val->val.u8, on ? "on" : "off");
-        err = command_on_off(*device, on);
+    } else if (cluster_id == FanControl::Id && device->kind == BridgeKind::RelayFan) {
+        if (attribute_id == FanControl::Attributes::FanMode::Id) {
+            const bool on = val->val.u8 != kFanModeOff;
+            ESP_LOGI(TAG, "Matter -> veldbus: ep=%u \"%s\" fan_mode=%u -> %s", endpoint_id, device->name.c_str(),
+                     val->val.u8, on ? "on" : "off");
+            err = command_on_off(*device, on);
+        } else if (attribute_id == FanControl::Attributes::PercentSetting::Id) {
+            // Defensive: don't rely on the fan-control server mapping PercentSetting
+            // to FanMode (assumption to confirm in the Apple Home field test).
+            // Relay commands are absolute, so a duplicate command is harmless.
+            nullable<uint8_t> percent(val->val.u8);
+            if (!percent.is_null()) {
+                const bool on = percent.value() > 0;
+                ESP_LOGI(TAG, "Matter -> veldbus: ep=%u \"%s\" fan_percent=%u -> %s", endpoint_id,
+                         device->name.c_str(), percent.value(), on ? "on" : "off");
+                err = command_on_off(*device, on);
+            }
+        }
     }
 
     if (err != ESP_OK) {

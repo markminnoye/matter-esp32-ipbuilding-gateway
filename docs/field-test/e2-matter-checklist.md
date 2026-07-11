@@ -82,6 +82,8 @@ Serial toont bij boot de mapping: `Endpoint <id> <- <ip>:<type>:<ch> "<naam>"`.
 | Serial: `Matter -> veldbus: ep=… on_off=…` bij toggle | ☐ (TX zichtbaar) | ☐ |
 | Toggle vanuit Apple Home schakelt fysiek | N/A | ☐ |
 | Dim vanuit Apple Home zet fysiek niveau | N/A | ☐ |
+| Dimmer "aan" na "uit" herstelt het slider-niveau (niet 100%) | N/A | ☐ |
+| **Fan (verplicht):** toggle én speed-slider vanuit Apple Home schakelen relay — bevestig of PercentSetting-writes ook FanMode zetten (aanname fan-server) | N/A | ☐ |
 | Geen command-echo-loop (sync-update triggert geen TX) | ☐ | ☐ |
 
 ## MVP-gates (beslist A3)
@@ -123,8 +125,8 @@ Commissioning-code verschijnt op serial bij eerste boot (of na factory reset: `i
 - Bridge-topologie: Aggregator-endpoint + per kanaal een Bridged Node met `NodeLabel` (= `name` uit `devices.json`) en `UniqueID` (= entity-id `ip:type:ch`). Controllers tonen elk kanaal als los accessoire met die naam.
 - Endpoint-id's worden in `devices.json`-volgorde toegewezen — volgorde bij voorkeur niet wijzigen na commissioning; de `UniqueID` helpt controllers de identiteit te behouden, maar niet elke controller gebruikt die.
 - `room` uit `devices.json` wordt **niet** via Matter geëxporteerd: Matter kent geen standaard room-attribuut dat Apple Home of HA overneemt — kamers wijs je toe in de controller zelf.
-- Dimmer "aan" zonder niveau (kaal on-commando) stuurt het laatst bekende niveau, anders 100%.
-- Fan-endpoints gebruiken FanControl met sequence Off/High; Apple toont een ventilator-tegel.
+- Dimmer "aan" zonder niveau (kaal on-commando) stuurt het laatste niet-nul-niveau (bridge-tracked), anders 100%. `CurrentLevel` blijft bij "uit" bewust op dat niveau staan (Matter-semantiek: de slider toont wat "aan" herstelt) — herstelwaarde en slider zijn dus consistent.
+- Fan-endpoints gebruiken FanControl met sequence Off/High; Apple toont een ventilator-tegel. FanMode én PercentSetting worden beide afgehandeld (defensief — relay-commando's zijn absoluut, dubbel commando is onschadelijk); veldtest moet bevestigen wat Apple daadwerkelijk schrijft.
 - De echo-guard (`s_sync_in_progress`) voorkomt dat een veldbus→Matter sync opnieuw een veldbus-commando triggert.
 
 ---
