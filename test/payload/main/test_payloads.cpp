@@ -50,6 +50,24 @@ TEST_CASE("relay status off", "[payloads]")
     TEST_ASSERT_EQUAL_STRING("off", status->state.c_str());
 }
 
+TEST_CASE("relay module status on (10-char, field test 2026-07-12)", "[payloads]")
+{
+    const std::vector<uint8_t> payload = {'I', '0', '0', '0', '1', '6', '0', '1', '0', '0'};
+    const auto status = ipbuilding::veldbus::payloads::decode_relay_status(as_span(payload));
+    TEST_ASSERT_TRUE(status.has_value());
+    TEST_ASSERT_EQUAL(16, status->channel);
+    TEST_ASSERT_EQUAL_STRING("on", status->state.c_str());
+}
+
+TEST_CASE("relay module status off (10-char)", "[payloads]")
+{
+    const std::vector<uint8_t> payload = {'I', '0', '0', '0', '0', '3', '0', '0', '0', '0'};
+    const auto status = ipbuilding::veldbus::payloads::decode_relay_status(as_span(payload));
+    TEST_ASSERT_TRUE(status.has_value());
+    TEST_ASSERT_EQUAL(3, status->channel);
+    TEST_ASSERT_EQUAL_STRING("off", status->state.c_str());
+}
+
 TEST_CASE("relay strip j envelope", "[payloads]")
 {
     const std::vector<uint8_t> wrapped = {'m', 'J', 'S', '0', '0', '0', '0'};

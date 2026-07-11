@@ -29,7 +29,8 @@ constexpr const char *TAG = "udp_bus";
 constexpr int kHubPort = 1001;
 constexpr int kMaxDatagram = 256;
 constexpr int kPollIntervalMs = 2000;
-constexpr int kCommandQueueDepth = 8;
+// Deep enough for a Matter level-transition burst (one command per step).
+constexpr int kCommandQueueDepth = 16;
 
 struct OutboundCommand {
     char ip[16];
@@ -139,27 +140,42 @@ void drain_command_queue()
     }
 }
 
+void send_poll_cycle()
+{
+    if (s_registry == nullptr) {
+        return;
+    }
+    for (const auto &module : s_registry->active_modules()) {
+        const auto payload = poll_payload_for_type(registry::module_type_to_string(module.type));
+        if (payload.empty()) {
+            continue;
+        }
+        const esp_err_t err = send_datagram(module.ip.c_str(), payload);
+        if (err == ESP_OK) {
+            ESP_LOGI(TAG, "TX poll -> %s (%s) payload=%s", module.ip.c_str(),
+                     registry::module_type_to_string(module.type), format_poll_payload(payload).c_str());
+        }
+    }
+}
+
 void poll_task(void *arg)
 {
     (void)arg;
+    // Commands drain as soon as send_raw_command() notifies this task; polls
+    // keep their fixed cadence. Without the notify a queued command sat until
+    // the next poll tick (up to ~2 s tap-to-light latency, field test 2026-07-12).
+    TickType_t next_poll = xTaskGetTickCount();
     while (s_running) {
         drain_command_queue();
 
-        if (s_registry != nullptr) {
-            for (const auto &module : s_registry->active_modules()) {
-                const auto payload = poll_payload_for_type(registry::module_type_to_string(module.type));
-                if (payload.empty()) {
-                    continue;
-                }
-                const esp_err_t err = send_datagram(module.ip.c_str(), payload);
-                if (err == ESP_OK) {
-                    ESP_LOGI(TAG, "TX poll -> %s (%s) payload=%s", module.ip.c_str(),
-                             registry::module_type_to_string(module.type), format_poll_payload(payload).c_str());
-                }
-            }
+        if (static_cast<int32_t>(xTaskGetTickCount() - next_poll) >= 0) {
+            send_poll_cycle();
+            next_poll = xTaskGetTickCount() + pdMS_TO_TICKS(kPollIntervalMs);
         }
 
-        vTaskDelay(pdMS_TO_TICKS(kPollIntervalMs));
+        const TickType_t now = xTaskGetTickCount();
+        const TickType_t wait = static_cast<int32_t>(next_poll - now) > 0 ? next_poll - now : 1;
+        ulTaskNotifyTake(pdTRUE, wait);
     }
     vTaskDelete(nullptr);
 }
@@ -319,6 +335,10 @@ esp_err_t send_raw_command(const char *module_ip, Span<const uint8_t> payload)
     if (xQueueSend(s_command_queue, &queued, 0) != pdTRUE) {
         ESP_LOGW(TAG, "Command queue full for %s", module_ip);
         return ESP_ERR_NO_MEM;
+    }
+
+    if (s_poll_task != nullptr) {
+        xTaskNotifyGive(s_poll_task);  // Drain immediately instead of at the next poll tick.
     }
 
     return ESP_OK;

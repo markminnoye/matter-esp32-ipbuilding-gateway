@@ -155,7 +155,9 @@ std::optional<RelayStatus> decode_relay_status(Span<const uint8_t> data)
         return status;
     }
 
-    if (text.size() == 11 && text[0] == 'I') {
+    // Module status: I<module:3><channel:2><state:4> — e.g. I000160100 = ch16 on
+    // (Python _RELAY_STATUS_RE; field test 2026-07-12).
+    if (text.size() == 10 && text[0] == 'I') {
         const auto channel = parse_two_digit_channel(text.substr(4, 2));
         if (!channel) {
             return std::nullopt;
