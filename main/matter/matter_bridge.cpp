@@ -346,13 +346,26 @@ esp_err_t handle_attribute_update(attribute::callback_type_t type, uint16_t endp
     } else if (cluster_id == LevelControl::Id && attribute_id == LevelControl::Attributes::CurrentLevel::Id &&
                device->kind == BridgeKind::Dimmer) {
         // percent 0 (level 1 at cluster init, or slider minimum): nothing to send —
-        // off goes via OnOff. Log only when a command actually goes out.
+        // off goes via OnOff.
         const int percent = matter_level_to_percent(val->val.u8);
         if (percent > 0) {
-            ESP_LOGI(TAG, "Matter -> veldbus: ep=%u \"%s\" level=%u (%d%%)", endpoint_id, device->name.c_str(),
-                     val->val.u8, percent);
             device->last_level_percent = percent;
-            err = veldbus::send_dimmer_command(device->key.module_ip.c_str(), device->key.channel, percent);
+
+            // After an Off, CHIP restores CurrentLevel to the remembered
+            // brightness while OnOff stays false (bookkeeping, not a command).
+            // Forwarding that write re-lit the lamp right after C…-off
+            // (field test 2026-07-12) — only send while the light is on.
+            esp_matter_attr_val_t on_off_val = esp_matter_invalid(nullptr);
+            const bool is_on = attribute::get_val(endpoint_id, OnOff::Id, OnOff::Attributes::OnOff::Id,
+                                                  &on_off_val) == ESP_OK &&
+                               on_off_val.val.b;
+            if (is_on) {
+                ESP_LOGI(TAG, "Matter -> veldbus: ep=%u \"%s\" level=%u (%d%%)", endpoint_id, device->name.c_str(),
+                         val->val.u8, percent);
+                err = veldbus::send_dimmer_command(device->key.module_ip.c_str(), device->key.channel, percent);
+            } else {
+                ESP_LOGD(TAG, "ep=%u level restore to %d%% while off — remembered, not sent", endpoint_id, percent);
+            }
         }
     } else if (cluster_id == FanControl::Id && device->kind == BridgeKind::RelayFan) {
         if (attribute_id == FanControl::Attributes::FanMode::Id) {
