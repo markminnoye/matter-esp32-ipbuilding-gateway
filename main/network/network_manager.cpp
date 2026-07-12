@@ -19,13 +19,19 @@ namespace ipbuilding::network {
 
 static const char *TAG = "network_mgr";
 
-static constexpr int kEthConnectedBit = BIT0;
+static constexpr int kEthLinkBit = BIT0;
 static constexpr int kWifiConnectedBit = BIT1;
+static constexpr int kEthGotIpBit = BIT2;
+
+// Issue #3: DHCP is attempted for this long before falling back to the
+// configured static address (field-bus VLANs often have no DHCP server).
+static constexpr int kEthDhcpTimeoutMs = 30000;
 
 static EventGroupHandle_t s_event_group;
 static esp_netif_t *s_eth_netif;
 static esp_netif_t *s_wifi_netif;
 static esp_eth_handle_t s_eth_handle;
+static const char *s_eth_ip_source = "none";
 
 static bool parse_ipv4(const char *text, esp_ip4_addr_t *out)
 {
@@ -74,12 +80,12 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base, int32_t ev
         esp_eth_ioctl(eth_handle, ETH_CMD_G_MAC_ADDR, mac);
         ESP_LOGI(TAG, "Ethernet link up, MAC %02x:%02x:%02x:%02x:%02x:%02x (field-bus VLAN ready)", mac[0], mac[1],
                  mac[2], mac[3], mac[4], mac[5]);
-        xEventGroupSetBits(s_event_group, kEthConnectedBit);
+        xEventGroupSetBits(s_event_group, kEthLinkBit);
         break;
     }
     case ETHERNET_EVENT_DISCONNECTED:
         ESP_LOGW(TAG, "Ethernet link down");
-        xEventGroupClearBits(s_event_group, kEthConnectedBit);
+        xEventGroupClearBits(s_event_group, kEthLinkBit);
         break;
     case ETHERNET_EVENT_START:
         ESP_LOGI(TAG, "Ethernet started");
@@ -97,7 +103,7 @@ static void eth_got_ip_handler(void *arg, esp_event_base_t event_base, int32_t e
     (void)event_data;
 
     log_ip_info("ETH", s_eth_netif);
-    xEventGroupSetBits(s_event_group, kEthConnectedBit);
+    xEventGroupSetBits(s_event_group, kEthGotIpBit);
 }
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -131,29 +137,60 @@ static void wifi_got_ip_handler(void *arg, esp_event_base_t event_base, int32_t 
     xEventGroupSetBits(s_event_group, kWifiConnectedBit);
 }
 
-static esp_err_t init_ethernet()
+static esp_err_t init_ethernet(const config::EthNetworkConfig &cfg)
 {
     ESP_RETURN_ON_ERROR(board::init_w5500_ethernet(&s_eth_handle), TAG, "W5500 init failed");
 
-    esp_netif_config_t cfg = ESP_NETIF_DEFAULT_ETH();
-    s_eth_netif = esp_netif_new(&cfg);
+    esp_netif_config_t netif_cfg = ESP_NETIF_DEFAULT_ETH();
+    s_eth_netif = esp_netif_new(&netif_cfg);
     ESP_RETURN_ON_FALSE(s_eth_netif != nullptr, ESP_FAIL, TAG, "esp_netif_new ETH failed");
 
     esp_eth_netif_glue_handle_t glue = esp_eth_new_netif_glue(s_eth_handle);
     ESP_RETURN_ON_ERROR(esp_netif_attach(s_eth_netif, glue), TAG, "esp_netif_attach ETH failed");
-
-    ESP_RETURN_ON_ERROR(apply_static_ipv4(s_eth_netif, CONFIG_ETH_STATIC_IP, CONFIG_ETH_STATIC_GW,
-                                          CONFIG_ETH_STATIC_NETMASK),
-                        TAG, "ETH static IP failed");
 
     ESP_RETURN_ON_ERROR(esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, &eth_event_handler, nullptr), TAG,
                         "ETH event register failed");
     ESP_RETURN_ON_ERROR(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &eth_got_ip_handler, nullptr), TAG,
                         "ETH IP event register failed");
 
+    if (cfg.mode == config::EthNetworkConfig::Mode::Static) {
+        ESP_LOGI(TAG, "ETH mode=static (operator override): ip=%s gw=%s mask=%s", cfg.ip.c_str(),
+                 cfg.gateway.c_str(), cfg.netmask.c_str());
+        ESP_RETURN_ON_ERROR(apply_static_ipv4(s_eth_netif, cfg.ip.c_str(), cfg.gateway.c_str(), cfg.netmask.c_str()),
+                            TAG, "ETH static IP failed");
+        s_eth_ip_source = "static";
+    } else {
+        ESP_LOGI(TAG, "ETH mode=dhcp: requesting lease (timeout %d ms, fallback=%s)", kEthDhcpTimeoutMs,
+                 cfg.dhcp_fallback_static ? cfg.ip.c_str() : "disabled");
+    }
+
     ESP_RETURN_ON_ERROR(esp_eth_start(s_eth_handle), TAG, "esp_eth_start failed");
 
+    if (cfg.mode == config::EthNetworkConfig::Mode::Dhcp) {
+        const EventBits_t bits = xEventGroupWaitBits(s_event_group, kEthGotIpBit, pdFALSE, pdTRUE,
+                                                      pdMS_TO_TICKS(kEthDhcpTimeoutMs));
+        if ((bits & kEthGotIpBit) != 0) {
+            s_eth_ip_source = "dhcp";
+        } else if (cfg.dhcp_fallback_static) {
+            ESP_LOGW(TAG, "ETH: DHCP timeout, using fallback static %s", cfg.ip.c_str());
+            const esp_err_t fallback_err =
+                apply_static_ipv4(s_eth_netif, cfg.ip.c_str(), cfg.gateway.c_str(), cfg.netmask.c_str());
+            if (fallback_err == ESP_OK) {
+                s_eth_ip_source = "fallback";
+                xEventGroupSetBits(s_event_group, kEthGotIpBit);
+            } else {
+                ESP_LOGE(TAG, "ETH fallback static IP failed: %s", esp_err_to_name(fallback_err));
+                s_eth_ip_source = "none";
+            }
+        } else {
+            ESP_LOGW(TAG, "ETH: DHCP timeout, no fallback configured (dhcp_fallback_static=false) — veldbus may "
+                          "fail to bind");
+            s_eth_ip_source = "none";
+        }
+    }
+
     log_ip_info("ETH", s_eth_netif);
+    ESP_LOGI(TAG, "ETH IP source: %s", s_eth_ip_source);
     return ESP_OK;
 }
 
@@ -182,7 +219,7 @@ static esp_err_t init_wifi()
     return ESP_OK;
 }
 
-esp_err_t init()
+esp_err_t init(const config::EthNetworkConfig &eth_config)
 {
     s_event_group = xEventGroupCreate();
     ESP_RETURN_ON_FALSE(s_event_group != nullptr, ESP_ERR_NO_MEM, TAG, "EventGroup create failed");
@@ -190,19 +227,20 @@ esp_err_t init()
     ESP_RETURN_ON_ERROR(esp_netif_init(), TAG, "esp_netif_init failed");
     ESP_RETURN_ON_ERROR(esp_event_loop_create_default(), TAG, "esp_event_loop_create_default failed");
 
-    ESP_RETURN_ON_ERROR(init_ethernet(), TAG, "Ethernet init failed");
+    // init_ethernet() resolves the ETH address itself (DHCP wait + fallback
+    // or static apply) before returning, so veldbus can bind on a real IP
+    // as soon as network::init() completes (issue #3: "start veldbus pas
+    // na IP_EVENT_ETH_GOT_IP").
+    ESP_RETURN_ON_ERROR(init_ethernet(eth_config), TAG, "Ethernet init failed");
     ESP_RETURN_ON_ERROR(init_wifi(), TAG, "WiFi init failed");
 
-    EventBits_t bits = xEventGroupWaitBits(s_event_group, kEthConnectedBit | kWifiConnectedBit, pdFALSE, pdTRUE,
-                                           pdMS_TO_TICKS(30000));
-    if ((bits & kEthConnectedBit) == 0) {
-        ESP_LOGW(TAG, "Ethernet link not up within timeout — veldbus may fail until link is ready");
-    }
+    EventBits_t bits = xEventGroupWaitBits(s_event_group, kWifiConnectedBit, pdFALSE, pdTRUE, pdMS_TO_TICKS(30000));
     if ((bits & kWifiConnectedBit) == 0) {
         ESP_LOGW(TAG, "WiFi not connected within timeout — check CONFIG_WIFI_SSID/PASSWORD in menuconfig");
     }
 
-    ESP_LOGI(TAG, "Network init complete (dual-netif: ETH field-bus + WiFi home LAN)");
+    ESP_LOGI(TAG, "Network init complete (ETH source=%s, dual-netif: ETH field-bus + WiFi home LAN)",
+             s_eth_ip_source);
     return ESP_OK;
 }
 
@@ -214,6 +252,22 @@ esp_netif_t *get_eth_netif()
 esp_netif_t *get_wifi_netif()
 {
     return s_wifi_netif;
+}
+
+esp_err_t get_eth_ip_info(esp_netif_ip_info_t *out)
+{
+    if (s_eth_netif == nullptr || out == nullptr) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (std::strcmp(s_eth_ip_source, "none") == 0) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    return esp_netif_get_ip_info(s_eth_netif, out);
+}
+
+const char *get_eth_ip_source()
+{
+    return s_eth_ip_source;
 }
 
 }  // namespace ipbuilding::network

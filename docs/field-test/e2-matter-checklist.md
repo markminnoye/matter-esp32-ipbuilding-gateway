@@ -2,7 +2,9 @@
 
 Manual verification after flashing E2 firmware to Waveshare ESP32-S3-ETH.
 
-Desk-lab partial acceptance is possible without IPBuilding VLAN (commissioning + endpoint list). Full E2 acceptance requires VLAN or in-cabinet deployment **and both MVP-gates**: commissioning + bediening in **Apple Home** én **Home Assistant Matter** (design spec beslissing A3).
+Desk-lab partial acceptance is possible without IPBuilding VLAN (commissioning + endpoint list). Full E2 acceptance requires VLAN or in-cabinet deployment and the **Apple Home MVP-gate**: commissioning + on/off + dim.
+
+**Scope-wijziging (2026-07-12):** Home Assistant Matter is **geen** verplichte MVP-gate meer — beslissing A3 herzien, zie [`phases.md`](phases.md) en design spec §14. HA Matter blijft mogelijk als optionele testlaag, maar bepaalt geen acceptatie.
 
 ## Faseroadmap — waar staat E voor?
 
@@ -28,7 +30,6 @@ Desk-lab partial acceptance is possible without IPBuilding VLAN (commissioning +
 - ESP-IDF v5.5.4; WiFi SSID/password in menuconfig (thuis-LAN — Matter over WiFi)
 - `config/devices.json` met productie-kanalen (`active:true` + `semantic_type`)
 - iPhone met Apple Home op hetzelfde thuis-LAN
-- Home Assistant met Matter-integratie (test-controller)
 - **VLAN/cabinet:** Ethernet op IPBuilding VLAN; modules op `.30` (relay), `.40` (dimmer)
 
 ## Endpoint-mapping (design spec §8.1)
@@ -48,33 +49,33 @@ Serial toont bij boot de mapping: `Endpoint <id> <- <ip>:<type>:<ch> "<naam>"`.
 
 | Check | Desk-lab | VLAN/cabinet |
 |-------|----------|--------------|
-| Serial: `Created N veldbus-mapped endpoints` (N > 0) | ☐ | ☐ |
-| Serial: endpoint↔kanaal mapping per regel | ☐ | ☐ |
-| Commissioning QR/pincode op serial console | ☐ | ☐ |
-| Apple Home commissioning slaagt | ☐ | ☐ |
-| Apple Home schakelt 1 relay-kanaal fysiek | N/A | ☐ |
+| Serial: `Created N veldbus-mapped endpoints` (N > 0) | ☑ | ☑ |
+| Serial: endpoint↔kanaal mapping per regel | ☑ | ☑ |
+| Commissioning QR/pincode op serial console | ☑ | ☑ |
+| Apple Home commissioning slaagt | ☑ | ☑ |
+| Apple Home schakelt 1 relay-kanaal fysiek | N/A | ☑ |
 
 ## E2.2 — Alle actieve relay + dimmer endpoints
 
 | Check | Desk-lab | VLAN/cabinet |
 |-------|----------|--------------|
-| Alle `active:true` kanalen zichtbaar in Apple Home | ☐ | ☐ |
-| Kanaalnamen uit `devices.json` zichtbaar als accessoirenaam (NodeLabel) | ☐ | ☐ |
-| Lichten als lamp, fans als ventilator, switch als stekker | ☐ | ☐ |
-| Dimmer toont aan/uit + helderheidsslider | ☐ | ☐ |
-| On/off werkt fysiek op meerdere kanalen | N/A | ☐ |
-| Dim-niveau werkt fysiek | N/A | ☐ |
+| Alle `active:true` kanalen zichtbaar in Apple Home | ☑ | ☑ |
+| Kanaalnamen uit `devices.json` zichtbaar als accessoirenaam (NodeLabel) | ☑ | ☑ |
+| Lichten als lamp, fans als ventilator, switch als stekker | ☑ | ☑ |
+| Dimmer toont aan/uit + helderheidsslider | ☑ | ☑ |
+| On/off werkt fysiek op meerdere kanalen | N/A | ☑ |
+| Dim-niveau werkt fysiek | N/A | ☑ |
 
 ## E2.3 — State sync: veldbus → Matter
 
 | Check | Desk-lab | VLAN/cabinet |
 |-------|----------|--------------|
-| Serial: `Sync veldbus -> Matter: …` na statuswijziging | N/A | ☐ |
-| Wandknop-schakeling zichtbaar in Apple Home (na poll/status) | N/A | ☐ |
-| Status na herstart hub convergeert na eerste status-reply | N/A | ☐ |
-| **Boot sweep:** relay-kanalen tonen juiste aan/uit-stand direct na commissioning (geen fysieke toggle nodig) | ☐ | ☐ |
-| Serial: `Boot sweep relay … -> on/off` per actief kanaal, gevolgd door `Boot sweep complete: N/N …` | ☐ | ☐ |
-| Dimmer-kanalen tonen "uit" tot eerste fysieke/commando-event (geaccepteerde native-parity limitatie, geen HTTP) | ☐ | ☐ |
+| Serial: `Sync veldbus -> Matter: …` na statuswijziging | N/A | ☑ |
+| Wandknop-schakeling zichtbaar in Apple Home (na poll/status) | N/A | ☑ |
+| Status na herstart hub convergeert na eerste status-reply | N/A | ☑ |
+| **Boot sweep:** relay-kanalen tonen juiste aan/uit-stand direct na commissioning (geen fysieke toggle nodig) | ☑ | ☑ |
+| Serial: `Boot sweep relay … -> on/off` per actief kanaal, gevolgd door `Boot sweep complete: N/N …` | ☑ | ☑ |
+| Dimmer-kanalen tonen "uit" tot eerste fysieke/commando-event (geaccepteerde native-parity limitatie, geen HTTP) | ☑ | ☑ |
 
 **Let op:** de reguliere poll-ack (`P000000000`, `I0154999`) bevat geen kanaalstatus — externe schakelingen verschijnen zodra de module een statusbericht stuurt na een `S`/`C`-commando. De **boot-sweep** (`I<CH>00` → `I000<CH><state>`, vóór de eerste poll) is hiervan losstaand en levert de relay-startstatus al vóór het eerste event; zie [`phases.md`](phases.md#e3--hardening-post-mvp).
 
@@ -82,19 +83,19 @@ Serial toont bij boot de mapping: `Endpoint <id> <- <ip>:<type>:<ch> "<naam>"`.
 
 | Check | Desk-lab | VLAN/cabinet |
 |-------|----------|--------------|
-| Serial: `Matter -> veldbus: ep=… on_off=…` bij toggle | ☐ (TX zichtbaar) | ☐ |
-| Toggle vanuit Apple Home schakelt fysiek | N/A | ☐ |
-| Dim vanuit Apple Home zet fysiek niveau | N/A | ☐ |
-| Dimmer "aan" na "uit" herstelt het slider-niveau (niet 100%) | N/A | ☐ |
-| **Fan (verplicht):** toggle én speed-slider vanuit Apple Home schakelen relay — bevestig of PercentSetting-writes ook FanMode zetten (aanname fan-server) | N/A | ☐ |
-| Geen command-echo-loop (sync-update triggert geen TX) | ☐ | ☐ |
+| Serial: `Matter -> veldbus: ep=… on_off=…` bij toggle | ☑ (TX zichtbaar) | ☑ |
+| Toggle vanuit Apple Home schakelt fysiek | N/A | ☑ |
+| Dim vanuit Apple Home zet fysiek niveau | N/A | ☑ |
+| Dimmer "aan" na "uit" herstelt het slider-niveau (niet 100%) | N/A | ☑ |
+| **Fan:** toggle én speed-slider vanuit Apple Home schakelen relay — bevestig of PercentSetting-writes ook FanMode zetten (aanname fan-server) | N/A | ☑ |
+| Geen command-echo-loop (sync-update triggert geen TX) | ☑ | ☑ |
 
-## MVP-gates (beslist A3)
+## MVP-gate (beslist A3, herzien 2026-07-12)
 
 | Gate | Criteria | Status |
 |------|----------|--------|
-| **Apple Home** | Commissioning + on/off + dim | ☐ |
-| **HA Matter** | Commissioning + on/off + dim | ☐ |
+| **Apple Home** | Commissioning + on/off + dim | ☑ |
+| ~~HA Matter~~ | ~~Commissioning + on/off + dim~~ | **out of scope** (A3 herzien 2026-07-12 — Apple Home is het enige controllerpad voor dit product) |
 
 ---
 
@@ -141,10 +142,10 @@ Commissioning-code verschijnt op serial bij eerste boot (of na factory reset: `i
 
 | Gate | Criteria | Status |
 |------|----------|--------|
-| **Desk-lab E2 code** | Endpoints aangemaakt, commissioning start, geen crash | ☐ |
-| **Apple Home MVP-gate** | Commissioning + on/off + dim fysiek | ☐ |
-| **HA Matter MVP-gate** | Commissioning + on/off + dim fysiek | ☐ |
-| **E2.3 state sync** | Externe schakeling zichtbaar in controller | ☐ |
-| **Full E2** | Alle gates ☑ + evidence-document | ☐ |
+| **Desk-lab E2 code** | Endpoints aangemaakt, commissioning start, geen crash | ☑ |
+| **Apple Home MVP-gate** | Commissioning + on/off + dim fysiek | ☑ |
+| ~~HA Matter MVP-gate~~ | ~~Commissioning + on/off + dim fysiek~~ | **out of scope** (2026-07-12) |
+| **E2.3 state sync** | Externe schakeling zichtbaar in controller | ☑ |
+| **Full E2** | Alle gates ☑ + evidence-document | ☑ — [`2026-07-12-e2-matter-mvp.md`](evidence/2026-07-12-e2-matter-mvp.md) |
 
-**Evidence invullen:** `evidence/YYYY-MM-DD-e2-*.md` (patroon van E1-evidence volgen).
+**E2 gesloten (2026-07-12).**

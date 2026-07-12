@@ -2,7 +2,7 @@
 
 **Datum:** 2026-07-09  
 **Type:** Design spec (nieuw product — Deployment C / Fase 12)  
-**Status:** **Draft — architect-review (ronde 1) afgerond op 2026-07-09; zie §14.** Eén hardware-vraag (§5.3 H2) blijft open.  
+**Status:** **Architect-review (ronde 1) afgerond op 2026-07-09; zie §14. E2 MVP gesloten 2026-07-12 (Apple Home), H1/H2 opgelost — zie §5.3, §14.**  
 **Auteur:** agent-sessie + gebruikersbeslissingen (hardware besteld: ESP32-S3-ETH)  
 **Scope:** standalone embedded hub die zelfstandig de veldbus-rol vervult (voorheen ingevuld door de IPBox, inmiddels door de Python-gateway op HA) en **Matter** als northbound exporteert. Geen Python-gateway naast het board in Gen 1.
 
@@ -150,9 +150,9 @@ Veldbus-hub-rol is **per moduletype configureerbaar** via poll-gedrag. De IP1100
 
 **Open RE:** exact IP1100-registratiemechanisme (hardcoded `10.10.1.1` vs learned-from-poll); dual-poller gedrag. PCAP aanbevolen.
 
-### WiFi in metalen zekeringskast
+### WiFi in zekeringskast
 
-ESP32-S3-ETH heeft onboard ceramic antenna. Bij slechte RSSI in kast: later **IPEX-externe antenne** (variant met connector) of productie-board met externe antenne (§5.3).
+ESP32-S3-ETH heeft onboard ceramic antenna. **Opgelost (2026-07-12, H1):** productiekast is **kunststof**, geen metalen afscherming — geen RF-attenuatie te verwachten, externe antenne niet nodig.
 
 ---
 
@@ -178,17 +178,17 @@ ESP32-S3-ETH heeft onboard ceramic antenna. Bij slechte RSSI in kast: later **IP
 |---------|-------|---------|
 | **Lab / MVP** | **ESP32-S3-ETH** ✅ besteld | Firmware-ontwikkeling, veldbus + Matter |
 | **Lab + PoE** | ESP32-S3-POE-ETH (+ module) | Test één-kabel deployment |
-| **Productie zekeringskast** | ESP32-S3-POE-ETH-8DI-8DO | DIN-rail 35 mm, PoE, isolatie |
+| **Productie zekeringskast** | **ESP32-S3-ETH** ✅ beslist (2026-07-12, H2) | Zelfde board als lab/MVP — geen DIN-rail board besteld |
 | **Premium / Gen-2 UI** | ESP32-P4-WIFI6-POE-ETH | Meer RAM, native ETH, MIPI-DSI later |
 | **Afgewezen** | ESP32-S3-RS485-CAN | Geen Ethernet — geen veldbus |
 | **Afgewezen** | Touch-LCD / Relay-6CH boards | Geen veldbus-Ethernet of verkeerde rol |
 
 Firmware **MOET** board-agnostisch zijn waar mogelijk: abstractielaag `BoardProfile` (ETH interface, optional PoE flag).
 
-### 5.3 Open hardware-vragen (architect)
+### 5.3 Hardware-vragen (architect) — opgelost
 
-- [ ] **H1:** Voldoet ESP32-S3-ETH WiFi in de fysieke zekeringskast, of is externe antenne verplicht voor Matter? — geen huidige indicatie van problemen; blijft een test-actie in Fase E0 (geen documentwijziging nodig).
-- [ ] **H2:** Productie: DIN-rail board (S3-POE-ETH-8DI-8DO) of gemonteerd dev-board in kleine behuizing? — **nog echt open**, te beslissen na E2-acceptatie (zie §14 A6).
+- [x] **H1 (opgelost 2026-07-12):** WiFi-bereik in de zekeringskast — kast is **kunststof**, geen metalen afscherming, geen RF-attenuatie-risico; externe antenne niet nodig.
+- [x] **H2 (opgelost 2026-07-12):** Productie: **ESP32-S3-ETH** (het lab/MVP-board) is de productiehardware — geen DIN-rail board besteld.
 
 **H3 (bevestigd 2026-07-09):** de UniFi-switch levert 802.3af PoE op de IPBuilding-VLAN-poort — geen verdere verificatie nodig, uit de open-vragenlijst gehaald.
 
@@ -306,8 +306,8 @@ In-memory structuur, geladen uit flash-config:
 
 | Controller | Transport | Opmerking |
 |------------|-----------|-----------|
-| **Apple Home** | WiFi + BLE | Gebruiker commissiont via iPhone op thuis-LAN — **verplichte MVP-gate** |
-| **Home Assistant Matter** | WiFi | **Ook verplichte MVP-gate** (beslist A3, 2026-07-09): E2 is pas 'done' als beide controllers succesvol commissionen én bedienen |
+| **Apple Home** | WiFi + BLE | Gebruiker commissiont via iPhone op thuis-LAN — **enige verplichte MVP-gate** |
+| **Home Assistant Matter** | WiFi | Geen gate meer (A3 herzien 2026-07-12) — optioneel, niet vereist voor E2-acceptatie |
 
 Matter-over-Ethernet is mogelijk op ESP32-S3-ETH; Gen 1 prioriteit blijft **WiFi** voor commissioning (Apple-ervaring).
 
@@ -328,6 +328,24 @@ Matter-over-Ethernet is mogelijk op ESP32-S3-ETH; Gen 1 prioriteit blijft **WiFi
 | **Gen 2** | Companion-achtige provisioning-tool (host-side) die JSON + Matter-fabric beheert |
 
 **Bron voor initieel JSON:** export uit bestaande `devices.json` in [`IPBuilding-Gateway`](https://github.com/markminnoye/IPBuilding-Gateway/blob/main/devices.json) of `POST /api/v1/devices` van Python-gateway (Pi 3B).
+
+### 9.1 Ethernet-provisioning (E3, issue #3)
+
+Field-bus Ethernet (W5500) was tot en met E2 **hard static** op `10.10.1.1`. Vanaf E3: **factory default = DHCP met fallback naar static** — veel IPBuilding-VLANs hebben geen DHCP-server.
+
+| Bestand | Rol |
+|---------|-----|
+| `network.json` (LittleFS, `config/network.json` bron) | `eth.mode`: `dhcp` (factory) of `static`; `dhcp_fallback_static` + `fallback_ip/netmask/gateway` |
+
+**Boot-flow:**
+1. `NetworkConfigStore::init()` laadt `network.json` (ontbreekt → factory default: dhcp + fallback `10.10.1.1/24`, gelijk aan de oude `CONFIG_ETH_STATIC_IP/GW/NETMASK`)
+2. `network::init()` geeft die config door aan `init_ethernet()`: mode `dhcp` → wacht op `IP_EVENT_ETH_GOT_IP` (timeout 30 s) → geen lease → static fallback; mode `static` → direct toegepast, geen DHCP-poging
+3. `udp_bus_manager::start()` bindt op het **effectieve** eth-IP (`network::get_eth_ip_info()`), niet meer op een hardcoded menuconfig-waarde — veldbus start dus altijd ná een bekend IP
+4. Serial toont `ETH IP source: dhcp|fallback|static|none` en `UdpBusManager started on <ip>:1001 (source=…)`
+
+**Voorbeelden:** [`config/examples/network.example.json`](../../../config/examples/network.example.json) (factory default) · [`config/examples/network.static-override.example.json`](../../../config/examples/network.static-override.example.json) (operator static override).
+
+**Buiten scope (deze iteratie):** web-UI voor `network.json` (apart, issue #1); WiFi-provisioning blijft menuconfig.
 
 ---
 
@@ -407,7 +425,7 @@ matter-esp32-ipbuilding-gateway/
 | E2.3 | State sync: veldbus → Matter attribute | Status match na poll |
 | E2.4 | Command path: Matter → veldbus | Toggle vanuit Apple Home |
 
-**Acceptatie:** screen recording of testverslag; geen companion vereist. E2 vereist succesvolle commissioning + bediening in **zowel Apple Home als HA Matter** (beslist A3, zie §8.2).
+**Acceptatie:** screen recording of testverslag; geen companion vereist. E2 vereist succesvolle commissioning + bediening in **Apple Home** (A3 herzien 2026-07-12, zie §8.2) — **gesloten**, zie [`e2-matter-checklist.md`](../field-test/e2-matter-checklist.md) en evidence [`2026-07-12-e2-matter-mvp.md`](../field-test/evidence/2026-07-12-e2-matter-mvp.md).
 
 ### Fase E3 — Hardening (post-MVP)
 
@@ -445,7 +463,7 @@ matter-esp32-ipbuilding-gateway/
 |--------|--------|-----------|
 | esp-matter RAM/flash footprint | Build faalt of OTA krap | `sdkconfig` optimalisaties; start met weinig endpoints |
 | W5500 SPI + Matter + WiFi concurrent | Poll jitter | Dedicated task; meet poll-latency in E1 |
-| WiFi in metalen kast | Commissioning faalt | Externe antenne; test vroeg in E0 (§5.3 H1) |
+| ~~WiFi in metalen kast~~ | — | **Niet van toepassing** — productiekast is kunststof (§5.3 H1, opgelost 2026-07-12) |
 | Onbedoeld dubbele hub-binding | Twee actieve controllers op dezelfde modules | Geen IP-conflict (IPBox is uit, Python-gateway zit op ander VLAN — §4/A7); gelijktijdige bediening via HA + Apple Home is normaal gedrag, geen bug |
 | Payload drift Python ↔ C++ | Regressie | Gedeelde testvectoren uit `tests/test_payloads*.py` |
 | Geen HA companion op embedded | Gebruiker verwacht WS | Duidelijke productcommunicatie: Matter-first |
@@ -460,13 +478,13 @@ Onderstaande punten waren **open** in de eerste draft en zijn tijdens de archite
 |----|-------|------------|
 | **A1** | Matter device type per relay kanaal | `light` → On/Off Light, `fan` → Fan, `switch` → On/Off Plug-in Unit (zie §8.1) |
 | **A2** | Poll `active:false` kanalen? | **Nee** — niet pollen, geen Matter-endpoint (zie §7.4) |
-| **A3** | Gen 1 HA-pad | HA Matter is een **verplichte** MVP-gate naast Apple Home (zie §8.2) |
+| **A3** | Gen 1 HA-pad | ~~HA Matter is een **verplichte** MVP-gate naast Apple Home~~ — **herzien 2026-07-12:** Apple Home is het enige verplichte controllerpad; HA Matter is out of scope (zie §8.2) |
 | **A4** | Repo-koppeling | Losse repo (deze repo, `matter-esp32-ipbuilding-gateway`); sync met Python-repo blijft puur documentair/handmatig (zie §10) |
 | **A5** | Northbound na Gen 1 | Matter-only; geen vooruitplanning voor MQTT/REST tenzij een concrete need opduikt |
-| **A6** | Productie-hardware gate | Productiebord pas bestellen **na E2-acceptatie** |
+| **A6** | Productie-hardware gate | **Beslist 2026-07-12 (na E2-acceptatie):** ESP32-S3-ETH (lab/MVP-board) is de productiehardware — geen DIN-rail board (zie §5.3 H2) |
 | **A7** | Netwerkrealiteit veldbus | IPBox is uitgeschakeld; Python-gateway (Spoor A) zit op een ander VLAN en bereikt de veldbus via inter-VLAN routing — **geen** IP-conflict met de embedded hub op `10.10.1.1` (zie §4) |
 
-**Nog open:** §5.3 **H2** (productiebord: DIN-rail vs gemonteerd dev-board — te beslissen na E2) en **H1** (WiFi-bereik in zekeringskast — test-actie Fase E0).
+**Alles gesloten:** §5.3 **H1** en **H2** opgelost 2026-07-12; A3 herzien (HA Matter uit scope); E2 MVP gesloten.
 
 ---
 
@@ -505,3 +523,4 @@ Wanneer architect dit document **goedkeurt**, mogen agenten starten met:
 |-------|-----------|
 | 2026-07-09 | Eerste draft — brainstorm + hardware ESP32-S3-ETH besteld |
 | 2026-07-09 | Architect-review ronde 1: A1–A7 beslist (§14), repo-identiteit bevestigd (deze repo), `semantic_type` uitgebreid met `fan`, netwerkrealiteit gecorrigeerd (IPBox uit, Python-gateway op ander VLAN via inter-VLAN routing, geen conflict), alle repo-relatieve links vervangen door absolute GitHub-URL's. H2 (productiebord) blijft open. |
+| 2026-07-12 | E2 Matter MVP gesloten (Apple Home commissioning + on/off + dim + state sync bidirectioneel, fysiek geverifieerd). A3 herzien: HA Matter is geen MVP-gate meer, out of scope. H1 opgelost (kunststof kast, geen antenne-risico). H2 opgelost (ESP32-S3-ETH is productiehardware, geen DIN-rail board). |

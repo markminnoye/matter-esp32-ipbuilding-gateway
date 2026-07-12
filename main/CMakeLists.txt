@@ -6,6 +6,8 @@ idf_component_register(
         "matter/matter_init.cpp"
         "matter/matter_bridge.cpp"
         "config/config_store.cpp"
+        "config/network_config.cpp"
+        "config/storage.cpp"
         "registry/types.cpp"
         "registry/device_registry.cpp"
         "veldbus/payloads/relay.cpp"

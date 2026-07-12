@@ -34,18 +34,24 @@
 - **Nog open:** PCAP (E1.2)
 - **RE bevinding:** input centrale-claim is poll-gated → actuator-only hub mogelijk (design spec §4.3); feature [IPBuilding-Gateway #16](https://github.com/markminnoye/IPBuilding-Gateway/issues/16) — **Python gateway eerst**, embedded later
 
-**E2 Matter MVP — code implemented (2026-07-11); veldtest open:**
+**E2 Matter MVP — closed (2026-07-12):**
 - MatterBridge: per actief kanaal een endpoint (light→On/Off Light, fan→Fan Off/High, switch→Plug-in Unit, dimmer→Dimmable Light); placeholder-endpoint verwijderd
-- Bridge-topologie (2026-07-12): Aggregator + Bridged Nodes met `NodeLabel` = kanaalnaam en `UniqueID` = entity-id — namen zichtbaar in Apple Home/HA; `room` blijft controller-side
+- Bridge-topologie (2026-07-12): Aggregator + Bridged Nodes met `NodeLabel` = kanaalnaam en `UniqueID` = entity-id — namen zichtbaar in Apple Home; `room` blijft controller-side
 - Command path (E2.4): attribute PRE_UPDATE → `send_relay_command`/`send_dimmer_command`/`send_dimmer_off`; echo-guard tegen sync-loops
 - State sync (E2.3): DeviceRegistry state-change listeners → `attribute::update` onder chip-stack lock
-- **Veldtest:** [`docs/field-test/e2-matter-checklist.md`](docs/field-test/e2-matter-checklist.md) — MVP-gates Apple Home + HA Matter nog open
+- **MVP-gate herzien (A3, 2026-07-12):** Apple Home is het enige verplichte controllerpad — HA Matter is **out of scope**, niet langer een gate
+- **Veldtest:** [`docs/field-test/e2-matter-checklist.md`](docs/field-test/e2-matter-checklist.md) — Apple Home MVP-gate ☑ · evidence: [`2026-07-12-e2-matter-mvp.md`](docs/field-test/evidence/2026-07-12-e2-matter-mvp.md)
 
-**Volgende stap:** E2-veldtest (commissioning + bediening in Apple Home én HA Matter)
+**E3 Hardening — in progress:**
+- **Ethernet provisioning (issue [#3](https://github.com/markminnoye/matter-esp32-ipbuilding-gateway/issues/3)) — firmware-deel geïmplementeerd (2026-07-12), veldtest open:** `network.json` op LittleFS (`NetworkConfigStore`, gedeelde LittleFS-mount via nieuwe `storage::mount_littlefs()`); factory default = DHCP met fallback naar static `10.10.1.1/24` na 30 s timeout; operator override `mode: static`; `udp_bus_manager` bindt op het effectieve eth-IP (`network::get_eth_ip_info()`) i.p.v. de oude hardcoded `CONFIG_ETH_STATIC_IP`; serial toont `ETH IP source: dhcp|fallback|static|none`. Web-UI blijft apart (issue #1)
+- Relay boot-sweep al gedaan (`9822fd2`)
+- Nog open: watchdog, OTA, factory reset (Identify-knop, [#2](https://github.com/markminnoye/matter-esp32-ipbuilding-gateway/issues/2))
 
-**Open beslissingen:**
-- **H1:** WiFi-bereik in metalen zekeringskast (desk RSSI -64 dBm; cabinet test open)
-- **H2:** Productie-hardware: DIN-rail board vs gemonteerd dev-board (na E2-acceptatie)
+**Volgende stap:** E3 ethernet-provisioning veldtest — DHCP-lease op desk-lab + fallback-gedrag op VLAN zonder DHCP-server bevestigen (kan niet lokaal gebuild/geflashed worden vanuit deze sessie — geen ESP-IDF toolchain beschikbaar)
+
+**Beslissingen H1/H2 (opgelost 2026-07-12):**
+- **H1:** WiFi-bereik — niet van toepassing, kast is **kunststof** (geen metalen afscherming); geen externe antenne nodig
+- **H2:** Productie-hardware — **ESP32-S3-ETH** (het lab-devboard) is de productiehardware; geen DIN-rail board (`ESP32-S3-POE-ETH-8DI-8DO`) besteld
 
 **Lab-hardware (bevestigd):** Waveshare **ESP32-S3-ETH** (ESP32-S3R8 + W5500).
 
@@ -64,7 +70,7 @@
 | Dual-netif: eth veldbus + WiFi Matter | EEPROM-sync / `saveAutonomy` |
 | Input listener `B-…E` (log only) | Touch UI |
 
-**MVP-gates (E2):** commissioning + bediening in **Apple Home** én **Home Assistant Matter** (beslissing A3).
+**MVP-gate (E2, gesloten):** commissioning + bediening in **Apple Home** (beslissing A3, herzien 2026-07-12 — HA Matter is geen gate meer).
 
 ---
 

@@ -391,11 +391,14 @@ esp_err_t start(registry::DeviceRegistry &registry)
 
     s_registry = &registry;
 
-    in_addr_t bind_addr = 0;
-    if (!parse_ipv4(CONFIG_ETH_STATIC_IP, &bind_addr)) {
-        ESP_LOGE(TAG, "Invalid CONFIG_ETH_STATIC_IP");
-        return ESP_ERR_INVALID_ARG;
+    esp_netif_ip_info_t eth_ip = {};
+    if (network::get_eth_ip_info(&eth_ip) != ESP_OK) {
+        ESP_LOGE(TAG, "No ETH IP available (source=%s) — cannot bind veldbus socket", network::get_eth_ip_source());
+        return ESP_ERR_INVALID_STATE;
     }
+    const in_addr_t bind_addr = eth_ip.ip.addr;
+    char eth_ip_str[16] = {};
+    esp_ip4addr_ntoa(&eth_ip.ip, eth_ip_str, sizeof(eth_ip_str));
 
     s_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (s_socket < 0) {
@@ -417,7 +420,7 @@ esp_err_t start(registry::DeviceRegistry &registry)
     local.sin_addr.s_addr = bind_addr;
 
     if (bind(s_socket, reinterpret_cast<sockaddr *>(&local), sizeof(local)) != 0) {
-        ESP_LOGE(TAG, "bind(%s:%d) failed: errno=%d", CONFIG_ETH_STATIC_IP, kHubPort, errno);
+        ESP_LOGE(TAG, "bind(%s:%d) failed: errno=%d", eth_ip_str, kHubPort, errno);
         close(s_socket);
         s_socket = -1;
         return ESP_FAIL;
@@ -457,7 +460,7 @@ esp_err_t start(registry::DeviceRegistry &registry)
         return ESP_ERR_NO_MEM;
     }
 
-    ESP_LOGI(TAG, "UdpBusManager started on %s:%d", CONFIG_ETH_STATIC_IP, kHubPort);
+    ESP_LOGI(TAG, "UdpBusManager started on %s:%d (source=%s)", eth_ip_str, kHubPort, network::get_eth_ip_source());
     return ESP_OK;
 }
 

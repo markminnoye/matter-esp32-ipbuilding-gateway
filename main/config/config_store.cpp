@@ -1,6 +1,7 @@
 #include "config_store.h"
 
-#include "esp_littlefs.h"
+#include "storage.h"
+
 #include "esp_log.h"
 
 #include "cJSON.h"
@@ -14,7 +15,6 @@ namespace ipbuilding::config {
 
 namespace {
 constexpr const char *TAG = "config_store";
-constexpr const char *kLittlefsBasePath = "/littlefs";
 constexpr const char *kDevicesJsonPath = "/littlefs/devices.json";
 
 const char *kEmbeddedDefaultJson = R"({
@@ -68,12 +68,7 @@ std::string read_file(const char *path)
 
 esp_err_t ConfigStore::init()
 {
-    esp_vfs_littlefs_conf_t conf = {};
-    conf.format_if_mount_failed = true;
-    conf.partition_label = "littlefs";
-    conf.base_path = kLittlefsBasePath;
-
-    const esp_err_t mount_err = esp_vfs_littlefs_register(&conf);
+    const esp_err_t mount_err = storage::mount_littlefs();
     if (mount_err != ESP_OK) {
         ESP_LOGW(TAG, "LittleFS mount failed (%s) — using embedded default config", esp_err_to_name(mount_err));
         return parse_json(kEmbeddedDefaultJson);

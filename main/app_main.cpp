@@ -1,4 +1,5 @@
 #include "config/config_store.h"
+#include "config/network_config.h"
 #include "matter_init.h"
 #include "network_manager.h"
 #include "registry/device_registry.h"
@@ -16,6 +17,7 @@
 static const char *TAG = "app_main";
 
 static ipbuilding::config::ConfigStore s_config;
+static ipbuilding::config::NetworkConfigStore s_network_config;
 static ipbuilding::registry::DeviceRegistry s_registry;
 
 static void log_boot_banner()
@@ -27,7 +29,7 @@ static void log_boot_banner()
     esp_read_mac(mac, ESP_MAC_WIFI_STA);
 
     const esp_app_desc_t *app_desc = esp_app_get_description();
-    ESP_LOGI(TAG, "IPBuilding embedded gateway — E2 Matter MVP (v%s)", app_desc->version);
+    ESP_LOGI(TAG, "IPBuilding embedded gateway — E3 ethernet provisioning (v%s)", app_desc->version);
     ESP_LOGI(TAG, "Chip: ESP32-S3, cores=%d, revision=%d", chip_info.cores, chip_info.revision);
     ESP_LOGI(TAG, "MAC: %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     ESP_LOGI(TAG, "Free heap: %lu bytes (internal), %lu bytes (PSRAM)",
@@ -46,7 +48,12 @@ extern "C" void app_main(void)
 
     log_boot_banner();
 
-    ESP_ERROR_CHECK(ipbuilding::network::init());
+    err = s_network_config.init();
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "network.json load failed: %s — using factory default eth config", esp_err_to_name(err));
+    }
+
+    ESP_ERROR_CHECK(ipbuilding::network::init(s_network_config.eth()));
 
     err = s_config.init();
     if (err != ESP_OK) {

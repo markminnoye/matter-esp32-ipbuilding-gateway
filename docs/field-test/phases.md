@@ -8,7 +8,7 @@ Volledige taken en “done when”-criteria staan in het [design spec §11](../s
 |------|------|------|----------|
 | **E0** | Project bootstrap | ESP-IDF + esp-matter skeleton, W5500, dual-netif | [e0-bootstrap-checklist.md](e0-bootstrap-checklist.md) — **closed** |
 | **E1** | Veldbus MVP | Payloads, UDP poll, commando's, `devices.json` | [e1-veldbus-checklist.md](e1-veldbus-checklist.md) |
-| **E2** | Matter MVP | esp-matter bridge, state sync, Apple Home + HA | [e2-matter-checklist.md](e2-matter-checklist.md) |
+| **E2** | Matter MVP | esp-matter bridge, state sync, Apple Home | [e2-matter-checklist.md](e2-matter-checklist.md) — **closed** |
 | **E3** | Hardening | Watchdog, OTA, PoE (post-MVP) | design spec §11 |
 | **E4** | Gen 2 | Generic Switch, discovery, touch UI | design spec §11 (deferred) |
 
@@ -40,11 +40,11 @@ Volledige taken en “done when”-criteria staan in het [design spec §11](../s
 | E2.3 | State sync: veldbus → Matter attribute | Status match na poll |
 | E2.4 | Command path: Matter → veldbus | Toggle vanuit Apple Home |
 
-**MVP-gate:** commissioning + bediening in **Apple Home** én **Home Assistant Matter**.
+**MVP-gate:** commissioning + bediening in **Apple Home** (Apple Home is het enige controllerpad; HA Matter herzien uit scope op 2026-07-12).
 
 ## E3 — Hardening (post-MVP)
 
-- **Ethernet provisioning:** factory default **DHCP → fallback static `10.10.1.1`**, `network.json`, web UI — [#3](https://github.com/markminnoye/matter-esp32-ipbuilding-gateway/issues/3)
+- **Ethernet provisioning:** factory default **DHCP → fallback static `10.10.1.1`**, `network.json` — firmware-deel geïmplementeerd (2026-07-12), **veldtest open**; web UI blijft apart — [#3](https://github.com/markminnoye/matter-esp32-ipbuilding-gateway/issues/3)
 - **Matter factory reset** via Identify-knop — [#2](https://github.com/markminnoye/matter-esp32-ipbuilding-gateway/issues/2)
 - Bind-recovery voor `10.10.1.1`
 - Watchdog + crash logging
