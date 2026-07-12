@@ -274,7 +274,10 @@ esp_err_t command_on_off(const BridgedDevice &device, bool on)
 {
     if (device.kind == BridgeKind::Dimmer) {
         if (!on) {
-            return veldbus::send_dimmer_off(device.key.module_ip.c_str(), device.key.channel);
+            // DIM 0 (S<ch>001030) — the IPBox-parity off used by the Python
+            // rest_shim for years; the C<ch>991030 "cut" from the RE sweep
+            // stays available via send_dimmer_off.
+            return veldbus::send_dimmer_command(device.key.module_ip.c_str(), device.key.channel, 0);
         }
         // Bare "on": restore the level the controller's slider shows (retained
         // CurrentLevel = last non-zero level); 100% only when never dimmed yet.
