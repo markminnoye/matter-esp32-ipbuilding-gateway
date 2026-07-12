@@ -39,8 +39,9 @@ menu "IPBuilding Gateway"
         default 2000
         range 500 10000
         help
-            Time between poll cycles (relay status + dimmer heartbeat).
-            2000 ms is stable on real IPBuilding modules; do not go below
-            500 ms — rapid UDP bursts confuse relay modules.
+            Time between module poll cycles (relay P0000 keepalive, dimmer
+            I9900, input I0000). Relay channel status is NOT polled here —
+            boot sweep seeds initial state; runtime updates are unsolicited
+            status lines on the rx task (Python gateway parity).
 
 endmenu

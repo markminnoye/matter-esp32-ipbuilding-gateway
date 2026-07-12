@@ -29,8 +29,6 @@ constexpr const char *TAG = "udp_bus";
 constexpr int kHubPort = 1001;
 constexpr int kMaxDatagram = 256;
 constexpr int kPollIntervalMs = CONFIG_VELDBUS_POLL_INTERVAL_MS;
-// Space relay status queries so the module can answer before the next send.
-constexpr int kRelayStatusGapMs = 200;
 // Deep enough for a Matter level-transition burst (one command per step).
 constexpr int kCommandQueueDepth = 16;
 // After ETH link-up, lwIP ARP to veldbus modules needs ~2–3 s (field test 2026-07-12).
@@ -161,48 +159,17 @@ void drain_command_queue()
     }
 }
 
-// Sleep in short slices so Matter commands queued during a poll sweep drain promptly.
-void delay_and_drain_commands(TickType_t delay_ms)
-{
-    const TickType_t deadline = xTaskGetTickCount() + pdMS_TO_TICKS(delay_ms);
-    while (static_cast<int32_t>(deadline - xTaskGetTickCount()) > 0) {
-        drain_command_queue();
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
-
-void send_relay_status_polls(const registry::ModuleConfig &module)
-{
-    const std::size_t count = module.channels.size();
-    for (std::size_t i = 0; i < count; ++i) {
-        const auto &channel = module.channels[i];
-        const auto query = payloads::encode_relay_status_query(channel.ch);
-        const esp_err_t err =
-            send_datagram(module.ip.c_str(), Span<const uint8_t>(query.data(), query.size()));
-        if (err == ESP_OK) {
-            ESP_LOGI(TAG, "TX status -> %s ch%d payload=%s", module.ip.c_str(), channel.ch,
-                     format_poll_payload(Span<const uint8_t>(query.data(), query.size())).c_str());
-        }
-        if (i + 1 < count) {
-            delay_and_drain_commands(kRelayStatusGapMs);
-        }
-    }
-}
-
+// Steady-state poll matches Python gateway/udp_bus.py: P0000 relay keepalive
+// (no per-channel state), I9900 dimmer idle, I0000 input centrale-claim.
+// Per-channel relay status (I<CH>00) is boot-sweep only; runtime wall-switch
+// sync is unsolicited I000<CH><state> on the rx task — O(1) per event, scales
+// to 32+ channels without a status-poll sweep.
 void send_poll_cycle()
 {
     if (s_registry == nullptr) {
         return;
     }
     for (const auto &module : s_registry->active_modules()) {
-        if (module.type == registry::ModuleType::Relay) {
-            // I<CH>00 returns per-channel state (wall switch sync). P0000 echo has
-            // no channel state — only used at boot for reachability probe.
-            send_relay_status_polls(module);
-            drain_command_queue();
-            continue;
-        }
-
         const auto payload = poll_payload_for_type(registry::module_type_to_string(module.type));
         if (payload.empty()) {
             continue;

@@ -10,7 +10,8 @@ namespace ipbuilding::matter::bridge {
 // Creates one Matter endpoint per active veldbus channel (design spec §8.1):
 //   relay semantic_type=light  -> On/Off Light
 //   relay semantic_type=fan    -> Fan (FanControl, Off/High)
-//   relay semantic_type=switch -> On/Off Plug-in Unit
+//   relay semantic_type=switch -> On/Off Light (Apple Home bridged plug-in
+//     units do not reliably show OnOff state; same OnOff cluster as light)
 //   dimmer channel             -> Dimmable Light (On/Off + Level Control)
 // Call after node::create() and before esp_matter::start().
 esp_err_t create_endpoints(esp_matter::node_t *node, const registry::DeviceRegistry &registry);

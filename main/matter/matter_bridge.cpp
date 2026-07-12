@@ -167,9 +167,11 @@ esp_err_t create_relay_endpoint(node_t *node, endpoint_t *aggregator, const regi
         break;
     }
     case registry::SemanticType::Switch: {
-        endpoint::on_off_plug_in_unit::config_t config;
+        // Apple Home does not reliably reflect OnOff state on bridged Plug-in
+        // Unit endpoints (field test 2026-07-12); On/Off Light reports correctly.
+        endpoint::on_off_light::config_t config;
         config.on_off.on_off = initial_on;
-        err = endpoint::on_off_plug_in_unit::add(ep, &config);
+        err = endpoint::on_off_light::add(ep, &config);
         kind = BridgeKind::RelaySwitch;
         break;
     }
@@ -397,11 +399,30 @@ esp_err_t handle_attribute_update(attribute::callback_type_t type, uint16_t endp
     return ESP_OK;
 }
 
+void push_all_relay_states()
+{
+    if (s_registry == nullptr) {
+        return;
+    }
+    for (const auto &device : s_devices) {
+        if (device.kind == BridgeKind::Dimmer) {
+            continue;
+        }
+        const auto state = s_registry->get_relay_state(device.key);
+        if (!state.has_value() || (state->state != "on" && state->state != "off")) {
+            continue;
+        }
+        on_relay_state(device.key, *state);
+    }
+}
+
 void start_state_sync(registry::DeviceRegistry &registry)
 {
     s_registry = &registry;
     registry.set_relay_state_listener(on_relay_state);
     registry.set_dimmer_state_listener(on_dimmer_state);
+    // Re-push boot-sweep state now that endpoints exist and subscriptions are live.
+    push_all_relay_states();
     ESP_LOGI(TAG, "State sync active (veldbus -> Matter attributes)");
 }
 
