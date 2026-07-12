@@ -31,7 +31,9 @@ static void log_boot_banner()
     const esp_app_desc_t *app_desc = esp_app_get_description();
     ESP_LOGI(TAG, "IPBuilding embedded gateway — E3 ethernet provisioning (v%s)", app_desc->version);
     ESP_LOGI(TAG, "Chip: ESP32-S3, cores=%d, revision=%d", chip_info.cores, chip_info.revision);
-    ESP_LOGI(TAG, "MAC: %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    ESP_LOGI(TAG, "WiFi MAC: %02x:%02x:%02x:%02x:%02x:%02x (chip identity only — ETH/W5500 MAC is logged separately "
+                  "by network_mgr/waveshare_s3_eth)",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     ESP_LOGI(TAG, "Free heap: %lu bytes (internal), %lu bytes (PSRAM)",
              static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
              static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)));

@@ -7,6 +7,7 @@
 #include "esp_eth_mac_spi.h"
 #include "esp_eth_phy.h"
 #include "esp_log.h"
+#include "esp_mac.h"
 
 namespace ipbuilding::board {
 
@@ -79,8 +80,29 @@ esp_err_t init_w5500_ethernet(esp_eth_handle_t *eth_handle_out)
         return err;
     }
 
+    // The W5500 is a bare SPI MAC/PHY with no factory-burned MAC address —
+    // unlike ESP32's internal EMAC, it stays unconfigured (commonly reads
+    // back all-zero) unless we program one explicitly. Derive a unique
+    // address from the chip's base MAC (distinct from ESP_MAC_WIFI_STA) so
+    // the field-bus interface has a stable, non-conflicting identity on the
+    // wire.
+    uint8_t eth_mac[6] = {};
+    err = esp_read_mac(eth_mac, ESP_MAC_ETH);
+    if (err != ESP_OK) {
+        esp_eth_driver_uninstall(eth_handle);
+        ESP_LOGE(TAG, "esp_read_mac(ESP_MAC_ETH) failed: %s", esp_err_to_name(err));
+        return err;
+    }
+    err = esp_eth_ioctl(eth_handle, ETH_CMD_S_MAC_ADDR, eth_mac);
+    if (err != ESP_OK) {
+        esp_eth_driver_uninstall(eth_handle);
+        ESP_LOGE(TAG, "ETH_CMD_S_MAC_ADDR failed: %s", esp_err_to_name(err));
+        return err;
+    }
+
     *eth_handle_out = eth_handle;
-    ESP_LOGI(TAG, "W5500 Ethernet driver installed (SPI host %d)", board.spi_host);
+    ESP_LOGI(TAG, "W5500 Ethernet driver installed (SPI host %d), MAC %02x:%02x:%02x:%02x:%02x:%02x", board.spi_host,
+             eth_mac[0], eth_mac[1], eth_mac[2], eth_mac[3], eth_mac[4], eth_mac[5]);
     return ESP_OK;
 }
 
