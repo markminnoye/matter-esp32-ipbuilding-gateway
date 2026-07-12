@@ -33,10 +33,6 @@ struct BridgedDevice {
     BridgeKind kind = BridgeKind::RelayLight;
     registry::DeviceKey key;
     std::string name;
-    // Last non-zero dimmer level. CurrentLevel stays retained while off (Matter
-    // semantics: the slider shows the brightness a bare "on" restores), so the
-    // restore value must match what the controller displays.
-    int last_level_percent = 0;
 };
 
 std::vector<BridgedDevice> s_devices;
@@ -253,9 +249,6 @@ void on_dimmer_state(const registry::DeviceKey &key, const registry::DimmerState
     if (device == nullptr || state.level_percent < 0) {
         return;
     }
-    if (state.level_percent > 0) {
-        device->last_level_percent = state.level_percent;
-    }
 
     ESP_LOGI(TAG, "Sync veldbus -> Matter: %s ep=%u level=%d%%",
              registry::make_entity_id(key.module_ip, key.type, key.channel).c_str(), device->endpoint_id,
@@ -273,16 +266,15 @@ void on_dimmer_state(const registry::DeviceKey &key, const registry::DimmerState
 esp_err_t command_on_off(const BridgedDevice &device, bool on)
 {
     if (device.kind == BridgeKind::Dimmer) {
+        // The module keeps its own last-level memory (RE_STATE ~48, hold-dim
+        // capture 2026-06-22): T<ch>991000 flips from off to that remembered
+        // level — same semantics as the physical button, and it survives our
+        // reboots. Off stays the deterministic C<ch>991030 cut; a toggle-off
+        // could flip the wrong way if Matter and module state ever diverge.
         if (!on) {
-            // DIM 0 (S<ch>001030) — the IPBox-parity off used by the Python
-            // rest_shim for years; the C<ch>991030 "cut" from the RE sweep
-            // stays available via send_dimmer_off.
-            return veldbus::send_dimmer_command(device.key.module_ip.c_str(), device.key.channel, 0);
+            return veldbus::send_dimmer_off(device.key.module_ip.c_str(), device.key.channel);
         }
-        // Bare "on": restore the level the controller's slider shows (retained
-        // CurrentLevel = last non-zero level); 100% only when never dimmed yet.
-        const int percent = device.last_level_percent > 0 ? device.last_level_percent : 100;
-        return veldbus::send_dimmer_command(device.key.module_ip.c_str(), device.key.channel, percent);
+        return veldbus::send_dimmer_toggle(device.key.module_ip.c_str(), device.key.channel);
     }
 
     return veldbus::send_relay_command(device.key.module_ip.c_str(), device.key.channel,
@@ -352,11 +344,9 @@ esp_err_t handle_attribute_update(attribute::callback_type_t type, uint16_t endp
         // off goes via OnOff.
         const int percent = matter_level_to_percent(val->val.u8);
         if (percent > 0) {
-            device->last_level_percent = percent;
-
             // After an Off, CHIP restores CurrentLevel to the remembered
             // brightness while OnOff stays false (bookkeeping, not a command).
-            // Forwarding that write re-lit the lamp right after C…-off
+            // Forwarding that write re-lit the lamp right after the off
             // (field test 2026-07-12) — only send while the light is on.
             esp_matter_attr_val_t on_off_val = esp_matter_invalid(nullptr);
             const bool is_on = attribute::get_val(endpoint_id, OnOff::Id, OnOff::Attributes::OnOff::Id,
@@ -367,7 +357,7 @@ esp_err_t handle_attribute_update(attribute::callback_type_t type, uint16_t endp
                          val->val.u8, percent);
                 err = veldbus::send_dimmer_command(device->key.module_ip.c_str(), device->key.channel, percent);
             } else {
-                ESP_LOGD(TAG, "ep=%u level restore to %d%% while off — remembered, not sent", endpoint_id, percent);
+                ESP_LOGD(TAG, "ep=%u level restore to %d%% while off — not sent", endpoint_id, percent);
             }
         }
     } else if (cluster_id == FanControl::Id && device->kind == BridgeKind::RelayFan) {

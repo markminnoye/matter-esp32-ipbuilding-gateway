@@ -98,7 +98,7 @@ Serial toont bij boot de mapping: `Endpoint <id> <- <ip>:<type>:<ch> "<naam>"`.
 ## Build / flash
 
 ```bash
-cp config/devices.example.json config/devices.json   # of productie-export
+cp config/examples/devices.example.json config/devices.json   # of productie-export
 idf.py build
 idf.py -p /dev/cu.usbmodem* flash monitor
 ```
@@ -125,7 +125,7 @@ Commissioning-code verschijnt op serial bij eerste boot (of na factory reset: `i
 - Bridge-topologie: Aggregator-endpoint + per kanaal een Bridged Node met `NodeLabel` (= `name` uit `devices.json`) en `UniqueID` (= entity-id `ip:type:ch`). Controllers tonen elk kanaal als los accessoire met die naam.
 - Endpoint-id's worden in `devices.json`-volgorde toegewezen — volgorde bij voorkeur niet wijzigen na commissioning; de `UniqueID` helpt controllers de identiteit te behouden, maar niet elke controller gebruikt die.
 - `room` uit `devices.json` wordt **niet** via Matter geëxporteerd: Matter kent geen standaard room-attribuut dat Apple Home of HA overneemt — kamers wijs je toe in de controller zelf.
-- Dimmer "aan" zonder niveau (kaal on-commando) stuurt het laatste niet-nul-niveau (bridge-tracked), anders 100%. `CurrentLevel` blijft bij "uit" bewust op dat niveau staan (Matter-semantiek: de slider toont wat "aan" herstelt) — herstelwaarde en slider zijn dus consistent.
+- Dimmer "aan" (kaal on-commando) stuurt native `T<ch>991000`: de module herstelt zijn **eigen** laatst-niveau-geheugen (zelfde semantiek als de fysieke knop; overleeft hub-reboots). "Uit" = `C<ch>991030` cut. Expliciet niveau (slider) = `S<ch><code>1030`. `CurrentLevel` blijft bij "uit" op het laatste niveau staan (Matter-semantiek) en wordt na de toggle-statusreply gesynct met wat de module echt herstelde.
 - Fan-endpoints gebruiken FanControl met sequence Off/High; Apple toont een ventilator-tegel. FanMode én PercentSetting worden beide afgehandeld (defensief — relay-commando's zijn absoluut, dubbel commando is onschadelijk); veldtest moet bevestigen wat Apple daadwerkelijk schrijft.
 - De echo-guard (`s_sync_in_progress`) voorkomt dat een veldbus→Matter sync opnieuw een veldbus-commando triggert.
 
