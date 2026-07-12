@@ -53,11 +53,13 @@ Volledige taken en “done when”-criteria staan in het [design spec §11](../s
   Oorzaak is een protocol-beperking (RE 2026-06-02): de poll-reply (`P000000000`,
   `I0154999`) bevat géén kanaalstatus — modules melden hun stand alleen na een
   `S`/`C`-commando of bij een statuswijziging, en een "geef alle standen"-query is
-  niet ge-RE'd. De Python-gateway heeft dezelfde beperking (design spec §7.3,
-  Scenario B). Status convergeert per kanaal bij het eerste event; workaround na
-  herstart is elk kanaal één keer schakelen. **Actie:** RE-onderzoek naar een
-  statusquery — PCAP van wat de originele IPBox na boot deed (sluit aan bij de
-  openstaande E1.2-PCAP).
+  niet ge-RE'd. Status convergeert per kanaal bij het eerste event; workaround na
+  herstart is elk kanaal één keer schakelen. **Oplossing bekend:** de Python-gateway
+  hydrateert sinds [`b592105f`](https://github.com/markminnoye/IPBuilding-Gateway/commit/b592105f)
+  (2026-06-18) de registry bij opstart via HTTP `GET /api.html?method=statuses`
+  op elke relay/dimmer-module. **Actie E3:** zelfde boot-hydration porten naar de
+  embedded firmware (esp_http_client naar `.30`/`.40`, seed zonder listeners te
+  triggeren).
 
 ## E4 — Gen 2 (deferred)
 
