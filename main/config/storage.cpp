@@ -19,7 +19,9 @@ esp_err_t mount_littlefs()
     }
 
     esp_vfs_littlefs_conf_t conf = {};
-    conf.format_if_mount_failed = true;
+    // Never auto-format: a mount failure must not silently wipe a flashed
+    // production devices.json / network.json (factory reset is E3 #2).
+    conf.format_if_mount_failed = false;
     conf.partition_label = kPartitionLabel;
     conf.base_path = kBasePath;
 

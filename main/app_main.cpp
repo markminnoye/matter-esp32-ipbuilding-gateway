@@ -66,12 +66,12 @@ extern "C" void app_main(void)
 
     err = ipbuilding::veldbus::start(s_registry);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Veldbus start failed: %s", esp_err_to_name(err));
-    }
-
-    err = ipbuilding::matter::init(s_registry);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Matter init failed: %s — network stack remains active", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Veldbus start failed: %s — Matter bridge disabled", esp_err_to_name(err));
+    } else {
+        err = ipbuilding::matter::init(s_registry);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Matter init failed: %s — network stack remains active", esp_err_to_name(err));
+        }
     }
 
     while (true) {

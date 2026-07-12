@@ -161,6 +161,16 @@ void drain_command_queue()
     }
 }
 
+// Sleep in short slices so Matter commands queued during a poll sweep drain promptly.
+void delay_and_drain_commands(TickType_t delay_ms)
+{
+    const TickType_t deadline = xTaskGetTickCount() + pdMS_TO_TICKS(delay_ms);
+    while (static_cast<int32_t>(deadline - xTaskGetTickCount()) > 0) {
+        drain_command_queue();
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+
 void send_relay_status_polls(const registry::ModuleConfig &module)
 {
     const std::size_t count = module.channels.size();
@@ -174,7 +184,7 @@ void send_relay_status_polls(const registry::ModuleConfig &module)
                      format_poll_payload(Span<const uint8_t>(query.data(), query.size())).c_str());
         }
         if (i + 1 < count) {
-            vTaskDelay(pdMS_TO_TICKS(kRelayStatusGapMs));
+            delay_and_drain_commands(kRelayStatusGapMs);
         }
     }
 }
@@ -189,6 +199,7 @@ void send_poll_cycle()
             // I<CH>00 returns per-channel state (wall switch sync). P0000 echo has
             // no channel state — only used at boot for reachability probe.
             send_relay_status_polls(module);
+            drain_command_queue();
             continue;
         }
 
@@ -201,6 +212,7 @@ void send_poll_cycle()
             ESP_LOGI(TAG, "TX poll -> %s (%s) payload=%s", module.ip.c_str(),
                      registry::module_type_to_string(module.type), format_poll_payload(payload).c_str());
         }
+        drain_command_queue();
     }
 }
 

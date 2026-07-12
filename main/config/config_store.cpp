@@ -70,7 +70,9 @@ esp_err_t ConfigStore::init()
 {
     const esp_err_t mount_err = storage::mount_littlefs();
     if (mount_err != ESP_OK) {
-        ESP_LOGW(TAG, "LittleFS mount failed (%s) — using embedded default config", esp_err_to_name(mount_err));
+        ESP_LOGE(TAG, "LittleFS mount failed (%s) — using embedded lab default (2 modules); "
+                      "flashed devices.json unavailable until partition is recovered",
+                 esp_err_to_name(mount_err));
         return parse_json(kEmbeddedDefaultJson);
     }
 
@@ -78,7 +80,8 @@ esp_err_t ConfigStore::init()
 
     std::string json_text = read_file(kDevicesJsonPath);
     if (json_text.empty()) {
-        ESP_LOGW(TAG, "No devices.json on LittleFS — using embedded default config");
+        ESP_LOGE(TAG, "devices.json missing on LittleFS — using embedded lab default (2 modules); "
+                      "production config not loaded");
         return parse_json(kEmbeddedDefaultJson);
     }
 
