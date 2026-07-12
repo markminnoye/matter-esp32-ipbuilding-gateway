@@ -4,6 +4,7 @@
 #include "registry/device_registry.h"
 #include "veldbus/udp_bus_manager.h"
 
+#include "esp_app_desc.h"
 #include "esp_chip_info.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
@@ -25,7 +26,8 @@ static void log_boot_banner()
     uint8_t mac[6] = {};
     esp_read_mac(mac, ESP_MAC_WIFI_STA);
 
-    ESP_LOGI(TAG, "IPBuilding embedded gateway — E2 Matter MVP");
+    const esp_app_desc_t *app_desc = esp_app_get_description();
+    ESP_LOGI(TAG, "IPBuilding embedded gateway — E2 Matter MVP (v%s)", app_desc->version);
     ESP_LOGI(TAG, "Chip: ESP32-S3, cores=%d, revision=%d", chip_info.cores, chip_info.revision);
     ESP_LOGI(TAG, "MAC: %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     ESP_LOGI(TAG, "Free heap: %lu bytes (internal), %lu bytes (PSRAM)",

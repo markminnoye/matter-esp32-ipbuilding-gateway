@@ -50,18 +50,21 @@ Volledige taken en “done when”-criteria staan in het [design spec §11](../s
 - Watchdog + crash logging
 - OTA (esp-matter OTA)
 - PoE-module test
-- **Initiële status na boot (geparkeerd uit E2-veldtest 2026-07-12):** na een herstart
-  toont Matter alle kanalen als "uit" tot een kanaal fysiek of via commando wijzigt.
-  Oorzaak is een protocol-beperking (RE 2026-06-02): de poll-reply (`P000000000`,
-  `I0154999`) bevat géén kanaalstatus — modules melden hun stand alleen na een
-  `S`/`C`-commando of bij een statuswijziging, en een "geef alle standen"-query is
-  niet ge-RE'd. Status convergeert per kanaal bij het eerste event; workaround na
-  herstart is elk kanaal één keer schakelen. **Oplossing bekend:** de Python-gateway
-  hydrateert sinds [`b592105f`](https://github.com/markminnoye/IPBuilding-Gateway/commit/b592105f)
-  (2026-06-18) de registry bij opstart via HTTP `GET /api.html?method=statuses`
-  op elke relay/dimmer-module. **Actie E3:** zelfde boot-hydration porten naar de
-  embedded firmware (esp_http_client naar `.30`/`.40`, seed zonder listeners te
-  triggeren).
+- **Initiële status na boot — relay: opgelost (2026-07-12), UDP-only.** Nieuwe
+  RE-evidence ([`2026-06-12_ipbox_boot_relay_sweep.md`](https://github.com/markminnoye/IPBuilding-Gateway/blob/main/resources_and_docs/evidence/2026-06-12_ipbox_boot_relay_sweep.md))
+  toont dat de IPBox zelf bij cold boot een relay-statussweep doet: `I<CH>00` →
+  `I000<CH><state>`, één query per geconfigureerd kanaal. `udp_bus_manager::start()`
+  doet dezelfde sweep synchroon vóór de poll/rx-tasks starten, seedt de registry
+  (`seed_relay_state`, geen listener-trigger) en de Matter-endpoints lezen die
+  seed bij `create_endpoints()` — geen HTTP nodig, geen fysieke toggle na herstart.
+- **Initiële status na boot — dimmer: geaccepteerde limitatie, native-parity.**
+  Er bestaat **geen** UDP-equivalent voor dimmer-statuslezing — ook de fysieke
+  IPBox leest dit niet uit bij boot (zelfde evidence, §2: "Geen per-kanaal sweep
+  voor dimmer of input"). Dimmerkanalen blijven daarom "uit"/onbekend tot het
+  eerste `S`/`C`/hold-dim-event, exact zoals de fysieke installatie. Bewust
+  **geen** HTTP-hydration (`GET /api.html?method=statuses`) toegevoegd — de
+  Python-gateway doet dit sinds [`b592105f`](https://github.com/markminnoye/IPBuilding-Gateway/commit/b592105f),
+  maar de embedded firmware blijft binnen de IPBuilding-veldbusstack (UDP/1001).
 
 ## E4 — Gen 2 (deferred)
 

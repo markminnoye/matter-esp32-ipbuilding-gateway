@@ -34,4 +34,13 @@ menu "IPBuilding Gateway"
             Information NodeLabel, max 32 characters). Change via menuconfig;
             already-commissioned fabrics may keep the old name until re-added.
 
+    config VELDBUS_POLL_INTERVAL_MS
+        int "Veldbus poll interval (ms)"
+        default 2000
+        range 500 10000
+        help
+            Time between poll cycles (relay status + dimmer heartbeat).
+            2000 ms is stable on real IPBuilding modules; do not go below
+            500 ms — rapid UDP bursts confuse relay modules.
+
 endmenu

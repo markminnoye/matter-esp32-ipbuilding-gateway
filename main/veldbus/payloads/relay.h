@@ -27,6 +27,7 @@ struct RelayStatus {
 
 std::vector<uint8_t> strip_j_envelope(Span<const uint8_t> data);
 std::vector<uint8_t> encode_relay_command(const RelayCommand &cmd);
+std::vector<uint8_t> encode_relay_status_query(int channel);
 bool is_relay_poll_echo(Span<const uint8_t> data);
 std::optional<RelayStatus> decode_relay_status(Span<const uint8_t> data);
 

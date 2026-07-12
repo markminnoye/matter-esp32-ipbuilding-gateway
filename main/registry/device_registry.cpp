@@ -100,14 +100,15 @@ void DeviceRegistry::handle_relay(const std::string &module_ip, Span<const uint8
     RelayState next{status->state, status->state_code};
     relay_states_[key] = next;
 
-    ESP_LOGI(TAG, "REPLY relay %s ch%d state=%s (code=%s)", module_ip.c_str(), status->channel, next.state.c_str(),
-             next.state_code.c_str());
     if (old_state != next.state) {
-        ESP_LOGI(TAG, "REPLY relay %s ch%d changed: %s -> %s", module_ip.c_str(), status->channel, old_state.c_str(),
-                 next.state.c_str());
+        ESP_LOGI(TAG, "REPLY relay %s ch%d changed: %s -> %s (code=%s)", module_ip.c_str(), status->channel,
+                 old_state.c_str(), next.state.c_str(), next.state_code.c_str());
         if (relay_listener_) {
             relay_listener_(key, next);
         }
+    } else {
+        ESP_LOGD(TAG, "REPLY relay %s ch%d state=%s (unchanged)", module_ip.c_str(), status->channel,
+                 next.state.c_str());
     }
 }
 
@@ -189,6 +190,11 @@ std::optional<DimmerState> DeviceRegistry::get_dimmer_state(const DeviceKey &key
         return std::nullopt;
     }
     return it->second;
+}
+
+void DeviceRegistry::seed_relay_state(const DeviceKey &key, const std::string &state, const std::string &state_code)
+{
+    relay_states_[key] = RelayState{state, state_code};
 }
 
 }  // namespace ipbuilding::registry

@@ -139,11 +139,18 @@ endpoint_t *create_bridged_node(node_t *node, endpoint_t *aggregator, const std:
 }
 
 esp_err_t create_relay_endpoint(node_t *node, endpoint_t *aggregator, const registry::ModuleConfig &module,
-                                const registry::ChannelConfig &channel)
+                                const registry::ChannelConfig &channel, const registry::DeviceRegistry &registry)
 {
     const std::string entity_id = registry::make_entity_id(module.ip, registry::ModuleType::Relay, channel.ch);
     endpoint_t *ep = create_bridged_node(node, aggregator, channel.name, entity_id);
     ESP_RETURN_ON_FALSE(ep != nullptr, ESP_FAIL, TAG, "Failed to create relay endpoint for %s", entity_id.c_str());
+
+    // Seeded by the UDP boot sweep (udp_bus_manager::start(), before this
+    // runs) so the endpoint starts in the true physical state instead of a
+    // hardcoded "off" — no on/off flicker on commissioning or app restart.
+    const registry::DeviceKey key{module.ip, registry::ModuleType::Relay, channel.ch};
+    const auto seeded_state = registry.get_relay_state(key);
+    const bool initial_on = seeded_state.has_value() && seeded_state->state == "on";
 
     BridgeKind kind = BridgeKind::RelayLight;
     esp_err_t err = ESP_OK;
@@ -151,17 +158,17 @@ esp_err_t create_relay_endpoint(node_t *node, endpoint_t *aggregator, const regi
     switch (channel.semantic_type) {
     case registry::SemanticType::Fan: {
         endpoint::fan::config_t config;
-        config.fan_control.fan_mode = kFanModeOff;
+        config.fan_control.fan_mode = initial_on ? kFanModeHigh : kFanModeOff;
         config.fan_control.fan_mode_sequence = kFanModeSequenceOffHigh;
-        config.fan_control.percent_setting = nullable<uint8_t>(0);
-        config.fan_control.percent_current = 0;
+        config.fan_control.percent_setting = nullable<uint8_t>(initial_on ? 100 : 0);
+        config.fan_control.percent_current = initial_on ? 100 : 0;
         err = endpoint::fan::add(ep, &config);
         kind = BridgeKind::RelayFan;
         break;
     }
     case registry::SemanticType::Switch: {
         endpoint::on_off_plug_in_unit::config_t config;
-        config.on_off.on_off = false;
+        config.on_off.on_off = initial_on;
         err = endpoint::on_off_plug_in_unit::add(ep, &config);
         kind = BridgeKind::RelaySwitch;
         break;
@@ -170,7 +177,7 @@ esp_err_t create_relay_endpoint(node_t *node, endpoint_t *aggregator, const regi
     case registry::SemanticType::Unknown:
     default: {
         endpoint::on_off_light::config_t config;
-        config.on_off.on_off = false;
+        config.on_off.on_off = initial_on;
         err = endpoint::on_off_light::add(ep, &config);
         kind = BridgeKind::RelayLight;
         break;
@@ -179,7 +186,6 @@ esp_err_t create_relay_endpoint(node_t *node, endpoint_t *aggregator, const regi
 
     ESP_RETURN_ON_ERROR(err, TAG, "Failed to add relay device type for %s", entity_id.c_str());
 
-    const registry::DeviceKey key{module.ip, registry::ModuleType::Relay, channel.ch};
     s_devices.push_back(BridgedDevice{endpoint::get_id(ep), kind, key, channel.name});
     return ESP_OK;
 }
@@ -191,6 +197,10 @@ esp_err_t create_dimmer_endpoint(node_t *node, endpoint_t *aggregator, const reg
     endpoint_t *ep = create_bridged_node(node, aggregator, channel.name, entity_id);
     ESP_RETURN_ON_FALSE(ep != nullptr, ESP_FAIL, TAG, "Failed to create dimmer endpoint for %s", entity_id.c_str());
 
+    // No UDP boot-sweep equivalent exists for dimmer status (RE evidence
+    // 2026-06-12: even the native IPBox does not read this back at boot), so
+    // this stays "off" until the first S/C/hold-dim event — accepted native
+    // parity gap, not worked around with HTTP.
     endpoint::dimmable_light::config_t config;
     config.on_off.on_off = false;
     ESP_RETURN_ON_ERROR(endpoint::dimmable_light::add(ep, &config), TAG, "Failed to add dimmer device type for %s",
@@ -299,7 +309,7 @@ esp_err_t create_endpoints(node_t *node, const registry::DeviceRegistry &registr
         for (const auto &channel : module.channels) {
             esp_err_t err = ESP_OK;
             if (module.type == registry::ModuleType::Relay) {
-                err = create_relay_endpoint(node, aggregator, module, channel);
+                err = create_relay_endpoint(node, aggregator, module, channel, registry);
             } else if (module.type == registry::ModuleType::Dimmer) {
                 err = create_dimmer_endpoint(node, aggregator, module, channel);
             } else {

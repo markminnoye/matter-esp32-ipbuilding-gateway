@@ -118,6 +118,20 @@ std::vector<uint8_t> encode_relay_command(const RelayCommand &cmd)
     return std::vector<uint8_t>(buffer, buffer + 5);
 }
 
+std::vector<uint8_t> encode_relay_status_query(int channel)
+{
+    // Cold-boot status read: I<CH>00 -> reply I000<CH><state> (native IPBox
+    // behaviour, RE evidence 2026-06-12; corrects the 2026-06-02 negative
+    // result which used the wrong channel field position).
+    char buffer[8] = {};
+    buffer[0] = 'I';
+    buffer[1] = static_cast<char>('0' + (channel / 10));
+    buffer[2] = static_cast<char>('0' + (channel % 10));
+    buffer[3] = '0';
+    buffer[4] = '0';
+    return std::vector<uint8_t>(buffer, buffer + 5);
+}
+
 bool is_relay_poll_echo(Span<const uint8_t> data)
 {
     if (!is_ascii_text(data) || data.size() != 10 || data[0] != 'P') {

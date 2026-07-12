@@ -72,8 +72,11 @@ Serial toont bij boot de mapping: `Endpoint <id> <- <ip>:<type>:<ch> "<naam>"`.
 | Serial: `Sync veldbus -> Matter: …` na statuswijziging | N/A | ☐ |
 | Wandknop-schakeling zichtbaar in Apple Home (na poll/status) | N/A | ☐ |
 | Status na herstart hub convergeert na eerste status-reply | N/A | ☐ |
+| **Boot sweep:** relay-kanalen tonen juiste aan/uit-stand direct na commissioning (geen fysieke toggle nodig) | ☐ | ☐ |
+| Serial: `Boot sweep relay … -> on/off` per actief kanaal, gevolgd door `Boot sweep complete: N/N …` | ☐ | ☐ |
+| Dimmer-kanalen tonen "uit" tot eerste fysieke/commando-event (geaccepteerde native-parity limitatie, geen HTTP) | ☐ | ☐ |
 
-**Let op:** relay/dimmer-modules melden status na een `S`/`C`-commando of statuswijziging — de poll-ack zelf bevat geen kanaalstatus (RE 2026-06-02). Externe schakelingen verschijnen dus zodra de module een statusbericht stuurt.
+**Let op:** de reguliere poll-ack (`P000000000`, `I0154999`) bevat geen kanaalstatus — externe schakelingen verschijnen zodra de module een statusbericht stuurt na een `S`/`C`-commando. De **boot-sweep** (`I<CH>00` → `I000<CH><state>`, vóór de eerste poll) is hiervan losstaand en levert de relay-startstatus al vóór het eerste event; zie [`phases.md`](phases.md#e3--hardening-post-mvp).
 
 ## E2.4 — Command path: Matter → veldbus
 
@@ -111,6 +114,8 @@ Commissioning-code verschijnt op serial bij eerste boot (of na factory reset: `i
 
 | Direction | Example | Meaning |
 |-----------|---------|---------|
+| Boot | `Boot sweep relay 10.10.1.30 ch10 -> on` | UDP status-sweep vóór poll-loop (`I<CH>00`), seedt registry zonder listener-trigger |
+| Boot | `Boot sweep complete: 24/24 relay channel(s) seeded` | Sweep-samenvatting, vóór `matter::init()` |
 | Boot | `Aggregator endpoint 1 (bridge root)` | Node presenteert zich als Matter-bridge |
 | Boot | `Endpoint 2 <- 10.10.1.30:relay:10 "Inkom"` | Veldbus-kanaal → Matter endpoint mapping; naam = NodeLabel |
 | Boot | `Created 28 veldbus-mapped endpoints` | Bridge klaar vóór `esp_matter::start` |
@@ -128,6 +133,7 @@ Commissioning-code verschijnt op serial bij eerste boot (of na factory reset: `i
 - Dimmer "aan" (kaal on-commando) stuurt native `T<ch>991000`: de module herstelt zijn **eigen** laatst-niveau-geheugen (zelfde semantiek als de fysieke knop; overleeft hub-reboots). "Uit" = `C<ch>991030` cut. Expliciet niveau (slider) = `S<ch><code>1030`. `CurrentLevel` blijft bij "uit" op het laatste niveau staan (Matter-semantiek) en wordt na de toggle-statusreply gesynct met wat de module echt herstelde.
 - Fan-endpoints gebruiken FanControl met sequence Off/High; Apple toont een ventilator-tegel. FanMode én PercentSetting worden beide afgehandeld (defensief — relay-commando's zijn absoluut, dubbel commando is onschadelijk); veldtest moet bevestigen wat Apple daadwerkelijk schrijft.
 - De echo-guard (`s_sync_in_progress`) voorkomt dat een veldbus→Matter sync opnieuw een veldbus-commando triggert.
+- **Relay boot-status:** `udp_bus_manager::start()` doet vóór de poll/rx-tasks een UDP-only sweep (`I<CH>00` → `I000<CH><state>`, native IPBox-gedrag) over alle actieve relay-kanalen en seedt `DeviceRegistry` zonder listeners te triggeren; `create_endpoints()` leest die seed voor de initiële `on_off`-waarde. **Dimmer heeft geen analoog** — dat blijft bewust "uit" tot het eerste event (geen HTTP-workaround).
 
 ---
 

@@ -47,6 +47,11 @@ public:
     std::optional<RelayState> get_relay_state(const DeviceKey &key) const;
     std::optional<DimmerState> get_dimmer_state(const DeviceKey &key) const;
 
+    // Boot-time state seed (UDP status sweep). Bypasses relay_listener_ so it
+    // never fires a Matter attribute::update before the bridge endpoints
+    // exist — callers apply this before matter::init()/create_endpoints().
+    void seed_relay_state(const DeviceKey &key, const std::string &state, const std::string &state_code);
+
 private:
     void handle_relay(const std::string &module_ip, Span<const uint8_t> data);
     void handle_dimmer(const std::string &module_ip, Span<const uint8_t> data);
