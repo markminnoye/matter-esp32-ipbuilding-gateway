@@ -26,4 +26,12 @@ menu "IPBuilding Gateway"
         string "Field-bus Ethernet netmask"
         default "255.255.255.0"
 
+    config MATTER_BRIDGE_NODE_LABEL
+        string "Matter bridge name (NodeLabel)"
+        default "IPBuilding Gateway"
+        help
+            User-visible name for the root Matter node in Apple Home / HA (Basic
+            Information NodeLabel, max 32 characters). Change via menuconfig;
+            already-commissioned fabrics may keep the old name until re-added.
+
 endmenu

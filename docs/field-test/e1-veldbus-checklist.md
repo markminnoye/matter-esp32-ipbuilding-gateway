@@ -28,7 +28,7 @@ Desk-lab partial acceptance is possible without IPBuilding VLAN. Full E1 accepta
 
 - E0 accepted (dual-netif, Matter stack starts)
 - ESP-IDF v5.5.4; WiFi SSID/password in menuconfig
-- `config/devices.json` present (copy from `config/devices.example.json` on first build)
+- `config/devices.json` present (copy from `config/examples/devices.example.json` on first build)
 - Serial monitor at 115200 baud
 - **Desk-lab:** Ethernet link-up optional; no module replies expected
 - **VLAN/cabinet:** Ethernet on IPBuilding VLAN (`10.10.1.0/24`); modules at `.30` (relay), `.40` (dimmer)
@@ -89,7 +89,7 @@ Desk-lab partial acceptance is possible without IPBuilding VLAN. Full E1 accepta
 ## Build / flash
 
 ```bash
-cp config/devices.example.json config/devices.json   # first time
+cp config/examples/devices.example.json config/devices.json   # first time
 idf.py build
 idf.py -p /dev/cu.usbmodem* flash monitor
 ```

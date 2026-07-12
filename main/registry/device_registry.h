@@ -57,6 +57,7 @@ private:
     std::vector<ModuleConfig> modules_;
     std::vector<ModuleConfig> active_modules_;
     std::unordered_map<std::string, ModuleType> module_types_;
+    std::unordered_map<std::string, bool> module_managed_;
     std::unordered_map<DeviceKey, RelayState, DeviceKeyHash> relay_states_;
     std::unordered_map<DeviceKey, DimmerState, DeviceKeyHash> dimmer_states_;
     std::unordered_map<std::string, int> dimmer_last_channel_;

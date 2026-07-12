@@ -1,0 +1,244 @@
+{
+  "modules": [
+    {
+      "name": "IP0200PoE",
+      "ip": "10.10.1.30",
+      "type": "relay",
+      "firmware": "",
+      "channels": [
+        {
+          "ch": 0,
+          "name": "Keuken LED",
+          "room": "Keuken",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 1,
+          "name": "Patio",
+          "room": "Buiten",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 2,
+          "name": "Achterdeur Licht",
+          "room": "Buiten",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 3,
+          "name": "Straatkant OP",
+          "room": "Living",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 4,
+          "name": "Straatkant NEER",
+          "room": "Living",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 5,
+          "name": "Buiten",
+          "room": "Buiten",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 6,
+          "name": "Tuinkant OP",
+          "room": "Living",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 7,
+          "name": "Tuinkant NEER",
+          "room": "Living",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 8,
+          "name": "Vuurtoren",
+          "room": "Buiten",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 9,
+          "name": "Badkamer ventilatie",
+          "room": "Badkamer",
+          "active": true,
+          "semantic_type": "fan",
+          "max_watt": 60
+        },
+        {
+          "ch": 10,
+          "name": "Inkom",
+          "room": "Inkomhal",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 11,
+          "name": "Slaapkamer achteraan",
+          "room": "Slaapkamer achteraan",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 12,
+          "name": "Badkamer",
+          "room": "Badkamer",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 13,
+          "name": "Slaapkamer vooraan",
+          "room": "Slaapkamer vooraan",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 14,
+          "name": "Traphal",
+          "room": "Traphal",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 15,
+          "name": "Traphal ¿rookmelder?",
+          "room": "Traphal",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 16,
+          "name": "Keuken Eettafel",
+          "room": "Keuken",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 17,
+          "name": "Keuken Kookeiland",
+          "room": "Keuken",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 18,
+          "name": "Keuken rookmelder",
+          "room": "Keuken",
+          "active": true,
+          "semantic_type": "switch",
+          "max_watt": 60
+        },
+        {
+          "ch": 19,
+          "name": "Speelkamer Boven LED",
+          "room": "Speelkamer",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 20,
+          "name": "Speelkamer Boven",
+          "room": "Speelkamer",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 21,
+          "name": "2e SlpK R",
+          "room": "Slaapkamers 2e%20verdieping",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 22,
+          "name": "2e SlpK L",
+          "room": "Slaapkamers 2e%20verdieping",
+          "active": true,
+          "semantic_type": "light",
+          "max_watt": 60
+        },
+        {
+          "ch": 23,
+          "name": "Keuken Ventilatie",
+          "room": "Keuken",
+          "active": true,
+          "semantic_type": "fan",
+          "max_watt": 60
+        }
+      ]
+    },
+    {
+      "name": "IP0300PoE",
+      "ip": "10.10.1.40",
+      "type": "dimmer",
+      "firmware": "",
+      "channels": [
+        {
+          "ch": 0,
+          "name": "Living [40.1.1]",
+          "room": "Living",
+          "active": true
+        },
+        {
+          "ch": 1,
+          "name": "Bureau [40.1.2]",
+          "room": "Gelijkvloers",
+          "active": true
+        },
+        {
+          "ch": 2,
+          "name": "Keuken main",
+          "room": "Keuken",
+          "active": true
+        },
+        {
+          "ch": 3,
+          "name": "40.1.4",
+          "room": "Gelijkvloers",
+          "active": true
+        }
+      ]
+    },
+    {
+      "name": "IP1100PoE",
+      "ip": "10.10.1.50",
+      "type": "input",
+      "firmware": "",
+      "managed": false,
+      "channels": []
+    }
+  ]
+}

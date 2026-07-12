@@ -17,12 +17,14 @@ void DeviceRegistry::load_from_modules(const std::vector<ModuleConfig> &modules)
     modules_ = modules;
     active_modules_.clear();
     module_types_.clear();
+    module_managed_.clear();
     relay_states_.clear();
     dimmer_states_.clear();
     dimmer_last_channel_.clear();
 
     for (const auto &module : modules_) {
         module_types_[module.ip] = module.type;
+        module_managed_[module.ip] = module.managed;
 
         ModuleConfig active_module = module;
         active_module.channels.clear();
@@ -42,8 +44,12 @@ void DeviceRegistry::load_from_modules(const std::vector<ModuleConfig> &modules)
             }
         }
 
-        // Input modules have no config channels but must still be polled (I0000) so the
-        // IP1100 stays in slave mode and sends unsolicited B-…E events to the hub.
+        if (!module.managed) {
+            continue;
+        }
+
+        // Input modules have no config channels but must still be polled (I0000) when
+        // managed so the IP1100 stays in slave mode and sends unsolicited B-…E events.
         if (!active_module.channels.empty() || module.type == ModuleType::Input) {
             active_modules_.push_back(std::move(active_module));
         }
@@ -143,6 +149,12 @@ void DeviceRegistry::handle_dimmer(const std::string &module_ip, Span<const uint
 
 void DeviceRegistry::handle_input(const std::string &module_ip, Span<const uint8_t> data)
 {
+    const auto managed_it = module_managed_.find(module_ip);
+    if (managed_it != module_managed_.end() && !managed_it->second) {
+        ESP_LOGD(TAG, "RX reply from unmanaged input %s (ignored)", module_ip.c_str());
+        return;
+    }
+
     const auto event = veldbus::payloads::decode_input_event(data);
     if (!event) {
         ESP_LOGW(TAG, "RX reply from input %s: undecoded payload", module_ip.c_str());

@@ -45,7 +45,7 @@ dependencies.lock
 managed_components/
 eim_config.toml
 
-# Runtime / local config (flash image built from example)
+# Runtime / local config (only this file is embedded in the LittleFS flash image)
 config/devices.json
 
 # Captures & temp
@@ -53,6 +53,9 @@ captures/
 tmp/
 *.pcapng
 *.pcap
+
+# Local commissioning artifacts (contain the setup code)
+CHIP_*QR*Code*.pdf
 
 # Python (host-side tooling, if any)
 .venv/

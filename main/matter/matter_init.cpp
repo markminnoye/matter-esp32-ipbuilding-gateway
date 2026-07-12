@@ -6,7 +6,9 @@
 #include "esp_log.h"
 #include "esp_matter.h"
 #include "esp_matter_attribute_utils.h"
+#include "sdkconfig.h"
 
+#include <cstring>
 #include <platform/CHIPDeviceLayer.h>
 
 namespace ipbuilding::matter {
@@ -46,6 +48,11 @@ static esp_err_t app_attribute_update_cb(attribute::callback_type_t type, uint16
 esp_err_t init(registry::DeviceRegistry &registry)
 {
     node::config_t node_config;
+    std::strncpy(node_config.root_node.basic_information.node_label, CONFIG_MATTER_BRIDGE_NODE_LABEL,
+                 sizeof(node_config.root_node.basic_information.node_label) - 1);
+    node_config.root_node.basic_information.node_label[sizeof(node_config.root_node.basic_information.node_label) - 1] =
+        '\0';
+
     node_t *node = node::create(&node_config, app_attribute_update_cb, app_identification_cb);
     ESP_RETURN_ON_FALSE(node != nullptr, ESP_FAIL, TAG, "Failed to create Matter node");
 

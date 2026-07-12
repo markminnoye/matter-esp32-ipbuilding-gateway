@@ -44,6 +44,8 @@ Volledige taken en “done when”-criteria staan in het [design spec §11](../s
 
 ## E3 — Hardening (post-MVP)
 
+- **Ethernet provisioning:** factory default **DHCP → fallback static `10.10.1.1`**, `network.json`, web UI — [#3](https://github.com/markminnoye/matter-esp32-ipbuilding-gateway/issues/3)
+- **Matter factory reset** via Identify-knop — [#2](https://github.com/markminnoye/matter-esp32-ipbuilding-gateway/issues/2)
 - Bind-recovery voor `10.10.1.1`
 - Watchdog + crash logging
 - OTA (esp-matter OTA)

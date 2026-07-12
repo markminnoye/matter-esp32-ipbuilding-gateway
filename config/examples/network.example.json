@@ -1,0 +1,9 @@
+{
+  "eth": {
+    "mode": "dhcp",
+    "dhcp_fallback_static": true,
+    "fallback_ip": "10.10.1.1",
+    "fallback_netmask": "255.255.255.0",
+    "fallback_gateway": "10.10.1.1"
+  }
+}

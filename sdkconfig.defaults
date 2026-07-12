@@ -20,6 +20,9 @@ CONFIG_ETH_SPI_ETHERNET_W5500=y
 # Compiler
 CONFIG_COMPILER_CXX_EXCEPTIONS=n
 
+# Log V2 — smaller flash, centralized formatting; ESP_LOG* API unchanged
+CONFIG_LOG_VERSION_2=y
+
 # WiFi — Matter uses STA; no SoftAP in Gen 1
 CONFIG_ESP_WIFI_SOFTAP_SUPPORT=n
 

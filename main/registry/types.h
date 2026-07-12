@@ -22,6 +22,7 @@ struct ModuleConfig {
     ModuleType type = ModuleType::Relay;
     std::string name;
     std::vector<ChannelConfig> channels;
+    bool managed = true;
 };
 
 struct DeviceKey {

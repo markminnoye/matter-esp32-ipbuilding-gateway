@@ -16,7 +16,6 @@ namespace {
 constexpr const char *TAG = "config_store";
 constexpr const char *kLittlefsBasePath = "/littlefs";
 constexpr const char *kDevicesJsonPath = "/littlefs/devices.json";
-constexpr const char *kDevicesExamplePath = "/littlefs/devices.example.json";
 
 const char *kEmbeddedDefaultJson = R"({
   "modules": [
@@ -84,9 +83,6 @@ esp_err_t ConfigStore::init()
 
     std::string json_text = read_file(kDevicesJsonPath);
     if (json_text.empty()) {
-        json_text = read_file(kDevicesExamplePath);
-    }
-    if (json_text.empty()) {
         ESP_LOGW(TAG, "No devices.json on LittleFS — using embedded default config");
         return parse_json(kEmbeddedDefaultJson);
     }
@@ -136,6 +132,7 @@ esp_err_t ConfigStore::parse_json(const char *json_text)
         const cJSON *type = cJSON_GetObjectItemCaseSensitive(module_item, "type");
         const cJSON *name = cJSON_GetObjectItemCaseSensitive(module_item, "name");
         const cJSON *channels = cJSON_GetObjectItemCaseSensitive(module_item, "channels");
+        const cJSON *managed = cJSON_GetObjectItemCaseSensitive(module_item, "managed");
 
         if (!cJSON_IsString(ip) || !cJSON_IsString(type) || !cJSON_IsArray(channels)) {
             continue;
@@ -146,6 +143,7 @@ esp_err_t ConfigStore::parse_json(const char *json_text)
         if (cJSON_IsString(name)) {
             module.name = name->valuestring;
         }
+        module.managed = !cJSON_IsBool(managed) || cJSON_IsTrue(managed);
 
         cJSON *channel_item = nullptr;
         cJSON_ArrayForEach(channel_item, channels)

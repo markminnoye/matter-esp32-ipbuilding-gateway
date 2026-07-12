@@ -15,6 +15,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Stage devices.json for LittleFS
+        run: cp config/examples/devices.example.json config/devices.json
+
       - name: Build firmware (ESP32-S3)
         uses: espressif/esp-idf-ci-action@v1
         with:

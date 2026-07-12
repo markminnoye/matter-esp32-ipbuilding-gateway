@@ -68,10 +68,10 @@ idf.py -p /dev/cu.usbmodem* flash monitor
 LittleFS stores field-bus config. Before first flash:
 
 ```bash
-cp config/devices.example.json config/devices.json
+cp config/examples/devices.example.json config/devices.json
 ```
 
-The build embeds the `config/` folder into the `littlefs` partition. Edit `config/devices.json` for your installation (gitignored).
+The build embeds **only** `config/devices.json` into the LittleFS partition (not the example template). Edit `config/devices.json` for your installation (gitignored).
 
 ### 5. Payload unit tests (optional)
 
@@ -92,7 +92,7 @@ idf.py build
 - [`docs/README.md`](docs/README.md) — spec index
 - [`docs/field-test/e0-bootstrap-checklist.md`](docs/field-test/e0-bootstrap-checklist.md) — E0 verification steps
 - [`docs/field-test/e1-veldbus-checklist.md`](docs/field-test/e1-veldbus-checklist.md) — E1 verification steps
-- [`config/devices.example.json`](config/devices.example.json) — flash config shape (E1)
+- [`config/examples/devices.example.json`](config/examples/devices.example.json) — config template (not flashed)
 
 ## Firmware layout
 

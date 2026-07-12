@@ -341,7 +341,9 @@ matter-esp32-ipbuilding-gateway/
 ├── AGENTS.md                   # agent brief (zoals IPBuilding-Gateway)
 ├── .gitignore
 ├── config/
-│   └── devices.example.json
+│   ├── devices.json            # install config (gitignored, flashed to LittleFS)
+│   └── examples/
+│       └── devices.example.json
 ├── docs/
 │   ├── README.md
 │   ├── context-policy.md
