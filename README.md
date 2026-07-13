@@ -18,6 +18,8 @@ Canonical design: [`docs/superpowers/specs/2026-07-09-embedded-ipbuilding-gatewa
 
 Agent brief: [`AGENTS.md`](AGENTS.md)
 
+Changelog: [`CHANGELOG.md`](CHANGELOG.md)
+
 ## Network (Gen 1)
 
 ```

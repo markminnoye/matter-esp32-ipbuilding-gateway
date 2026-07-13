@@ -35,13 +35,20 @@ menu "IPBuilding Gateway"
             already-commissioned fabrics may keep the old name until re-added.
 
     config VELDBUS_POLL_INTERVAL_MS
-        int "Veldbus poll interval (ms)"
+        int "Veldbus input poll interval (ms)"
         default 2000
         range 500 10000
         help
-            Time between module poll cycles (relay P0000 keepalive, dimmer
-            I9900, input I0000). Relay channel status is NOT polled here —
-            boot sweep seeds initial state; runtime updates are unsolicited
-            status lines on the rx task (Python gateway parity).
+            Time between IP1100 input polls (I0000). IPBox steady-state ~2 s.
+            Relay channel status is NOT polled here — boot sweep seeds initial
+            state; runtime updates are unsolicited status lines on the rx task.
+
+    config VELDBUS_ACTUATOR_POLL_INTERVAL_MS
+        int "Veldbus actuator poll interval (ms)"
+        default 20000
+        range 500 60000
+        help
+            Time between relay/dimmer keep-alive polls (P0000 / I9900).
+            IPBox steady-state ~20 s. Input uses VELDBUS_POLL_INTERVAL_MS.
 
 endmenu

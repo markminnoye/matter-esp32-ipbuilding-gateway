@@ -278,13 +278,16 @@ void on_dimmer_state(const registry::DeviceKey &key, const registry::DimmerState
 esp_err_t command_on_off(const BridgedDevice &device, bool on)
 {
     if (device.kind == BridgeKind::Dimmer) {
-        // The module keeps its own last-level memory (RE_STATE ~48, hold-dim
-        // capture 2026-06-22): T<ch>991000 flips from off to that remembered
-        // level — same semantics as the physical button, and it survives our
-        // reboots. Off stays the deterministic C<ch>991030 cut; a toggle-off
-        // could flip the wrong way if Matter and module state ever diverge.
-        if (!on) {
-            return veldbus::send_dimmer_off(device.key.module_ip.c_str(), device.key.channel);
+        // Input-module dialect (2026-05-17_dimmer_I0154xxx_full_decode.md):
+        // T<ch><vv>1000 toggles off↔last-level on the IP0300 — same semantics
+        // as the physical button. The <vv> field is a fixed placeholder (99);
+        // the module ignores it and replies with I0154<ch><level>.
+        esp_matter_attr_val_t on_off_val = esp_matter_invalid(nullptr);
+        const bool currently_on = attribute::get_val(device.endpoint_id, OnOff::Id, OnOff::Attributes::OnOff::Id,
+                                                     &on_off_val) == ESP_OK &&
+                                  on_off_val.val.b;
+        if (currently_on == on) {
+            return ESP_OK;
         }
         return veldbus::send_dimmer_toggle(device.key.module_ip.c_str(), device.key.channel);
     }

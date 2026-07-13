@@ -226,7 +226,7 @@ Firmware **MOET** board-agnostisch zijn waar mogelijk: abstractielaag `BoardProf
 │                              ▼                    │ WiFi    │
 │  ┌──────────────────────────────────────────┐    │          │
 │  │           UdpBusManager (FreeRTOS task)   │    │          │
-│  │  • poll loop (2s default)                 │    │          │
+│  │  • poll loop (input ~2s, actuators ~20s)    │    │          │
 │  │  • command queue                          │    │          │
 │  │  • listener (input B-…E)                  │    │          │
 │  │  • payloads/ (C++ port)                   │    │          │
@@ -241,7 +241,7 @@ Firmware **MOET** board-agnostisch zijn waar mogelijk: abstractielaag `BoardProf
 
 | Task | Prioriteit | Cadans |
 |------|------------|--------|
-| `udp_bus_poll` | Hoog | 2 s (configureerbaar) |
+| `udp_bus_poll` | Hoog | input ~2 s, relay/dimmer ~20 s (configureerbaar) |
 | `udp_bus_rx` | Hoog | Event-driven (socket) |
 | `matter_stack` | Medium | esp-matter event loop |
 | `config_load` | Laag | Boot + expliciete reload (later) |

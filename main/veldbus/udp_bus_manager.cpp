@@ -28,7 +28,10 @@ namespace {
 constexpr const char *TAG = "udp_bus";
 constexpr int kHubPort = 1001;
 constexpr int kMaxDatagram = 256;
-constexpr int kPollIntervalMs = CONFIG_VELDBUS_POLL_INTERVAL_MS;
+constexpr int kInputPollIntervalMs = CONFIG_VELDBUS_POLL_INTERVAL_MS;
+constexpr int kActuatorPollIntervalMs = CONFIG_VELDBUS_ACTUATOR_POLL_INTERVAL_MS;
+constexpr int kPollTickMs =
+    kInputPollIntervalMs < kActuatorPollIntervalMs ? kInputPollIntervalMs : kActuatorPollIntervalMs;
 // Deep enough for a Matter level-transition burst (one command per step).
 constexpr int kCommandQueueDepth = 16;
 // After ETH link-up, lwIP ARP to veldbus modules needs ~2–3 s (field test 2026-07-12).
@@ -48,6 +51,8 @@ TaskHandle_t s_poll_task = nullptr;
 TaskHandle_t s_rx_task = nullptr;
 QueueHandle_t s_command_queue = nullptr;
 bool s_running = false;
+TickType_t s_next_input_poll = 0;
+TickType_t s_next_actuator_poll = 0;
 
 bool parse_ipv4(const char *text, in_addr_t *out)
 {
@@ -159,17 +164,36 @@ void drain_command_queue()
     }
 }
 
-// Steady-state poll matches Python gateway/udp_bus.py: P0000 relay keepalive
-// (no per-channel state), I9900 dimmer idle, I0000 input centrale-claim.
+// Steady-state poll matches Python gateway/udp_bus.py (IPBox cadence):
+// input I0000 ~2 s; relay P0000 + dimmer I9900 ~20 s.
 // Per-channel relay status (I<CH>00) is boot-sweep only; runtime wall-switch
-// sync is unsolicited I000<CH><state> on the rx task — O(1) per event, scales
-// to 32+ channels without a status-poll sweep.
-void send_poll_cycle()
+// sync is unsolicited I000<CH><state> on the rx task.
+void send_poll_due(TickType_t now)
 {
     if (s_registry == nullptr) {
         return;
     }
+
+    const bool input_due = static_cast<int32_t>(now - s_next_input_poll) >= 0;
+    const bool actuator_due = static_cast<int32_t>(now - s_next_actuator_poll) >= 0;
+    if (!input_due && !actuator_due) {
+        return;
+    }
+
+    if (input_due) {
+        s_next_input_poll = now + pdMS_TO_TICKS(kInputPollIntervalMs);
+    }
+    if (actuator_due) {
+        s_next_actuator_poll = now + pdMS_TO_TICKS(kActuatorPollIntervalMs);
+    }
+
     for (const auto &module : s_registry->active_modules()) {
+        const bool poll_this = (module.type == registry::ModuleType::Input && input_due) ||
+                               (module.type != registry::ModuleType::Input && actuator_due);
+        if (!poll_this) {
+            continue;
+        }
+
         const auto payload = poll_payload_for_type(registry::module_type_to_string(module.type));
         if (payload.empty()) {
             continue;
@@ -187,19 +211,19 @@ void poll_task(void *arg)
 {
     (void)arg;
     // Commands drain as soon as send_raw_command() notifies this task; polls
-    // keep their fixed cadence. Without the notify a queued command sat until
-    // the next poll tick (up to ~2 s tap-to-light latency, field test 2026-07-12).
-    TickType_t next_poll = xTaskGetTickCount();
+    // tick at the faster of input/actuator intervals. Without the notify a
+    // queued command sat until the next poll tick (field test 2026-07-12).
+    TickType_t next_tick = xTaskGetTickCount();
     while (s_running) {
         drain_command_queue();
 
-        if (static_cast<int32_t>(xTaskGetTickCount() - next_poll) >= 0) {
-            send_poll_cycle();
-            next_poll = xTaskGetTickCount() + pdMS_TO_TICKS(kPollIntervalMs);
+        const TickType_t now = xTaskGetTickCount();
+        if (static_cast<int32_t>(now - next_tick) >= 0) {
+            send_poll_due(now);
+            next_tick = now + pdMS_TO_TICKS(kPollTickMs);
         }
 
-        const TickType_t now = xTaskGetTickCount();
-        const TickType_t wait = static_cast<int32_t>(next_poll - now) > 0 ? next_poll - now : 1;
+        const TickType_t wait = static_cast<int32_t>(next_tick - now) > 0 ? next_tick - now : 1;
         ulTaskNotifyTake(pdTRUE, wait);
     }
     vTaskDelete(nullptr);
@@ -451,7 +475,7 @@ void stop()
 
     s_running = false;
     if (s_poll_task != nullptr) {
-        vTaskDelay(pdMS_TO_TICKS(kPollIntervalMs + 100));
+        vTaskDelay(pdMS_TO_TICKS(kPollTickMs + 100));
         s_poll_task = nullptr;
     }
     if (s_rx_task != nullptr) {
