@@ -31,13 +31,28 @@ std::optional<int> parse_two_digit_channel(std::string_view text)
     return (text[0] - '0') * 10 + (text[1] - '0');
 }
 
+// Prefix rule (keep in sync with gateway/payloads/relay.py):
+// 01xx = on, 00xx = off. Lab firmware uses 0100/0000; older Nolf IP0200
+// modules also report 0115/0015 on status-poll. Command replies still use
+// 0100/0000. Unknown prefixes stay "unknown".
 std::string relay_state_from_code(std::string_view state_code)
 {
-    if (state_code == "0100") {
-        return "on";
-    }
-    if (state_code == "0000") {
-        return "off";
+    if (state_code.size() == 4) {
+        bool digits = true;
+        for (char ch : state_code) {
+            if (!std::isdigit(static_cast<unsigned char>(ch))) {
+                digits = false;
+                break;
+            }
+        }
+        if (digits) {
+            if (state_code.substr(0, 2) == "01") {
+                return "on";
+            }
+            if (state_code.substr(0, 2) == "00") {
+                return "off";
+            }
+        }
     }
     return "unknown";
 }

@@ -120,6 +120,14 @@ TEST_CASE("dimmer encode command", "[payloads]")
     TEST_ASSERT_TRUE(bytes_equal(wire, {'S', '0', '3', '0', '1', '0', '3', '0'}));
 }
 
+TEST_CASE("dimmer encode off", "[payloads]")
+{
+    const auto ch0 = ipbuilding::veldbus::payloads::encode_dim_off(0);
+    TEST_ASSERT_TRUE(bytes_equal(ch0, {'C', '0', '0', '0', '1', '0', '3', '0'}));
+    const auto ch1 = ipbuilding::veldbus::payloads::encode_dim_off(1);
+    TEST_ASSERT_TRUE(bytes_equal(ch1, {'C', '1', '0', '0', '1', '0', '3', '0'}));
+}
+
 TEST_CASE("dimmer encode toggle", "[payloads]")
 {
     const auto ch0 = ipbuilding::veldbus::payloads::encode_dim_toggle(0);

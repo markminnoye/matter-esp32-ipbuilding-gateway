@@ -442,6 +442,8 @@ esp_err_t start(registry::DeviceRegistry &registry)
     run_relay_boot_sweep(registry);
     drain_udp_rx_socket();
 
+    s_next_input_poll = 0;
+    s_next_actuator_poll = 0;
     s_running = true;
     if (xTaskCreate(poll_task, "udp_bus_poll", 4096, nullptr, configMAX_PRIORITIES - 3, &s_poll_task) != pdPASS) {
         s_running = false;
@@ -490,6 +492,8 @@ void stop()
         close(s_socket);
         s_socket = -1;
     }
+    s_next_input_poll = 0;
+    s_next_actuator_poll = 0;
     s_registry = nullptr;
 }
 

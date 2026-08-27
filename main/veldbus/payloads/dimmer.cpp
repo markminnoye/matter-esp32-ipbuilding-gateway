@@ -65,7 +65,7 @@ std::vector<uint8_t> encode_dim_command(const DimmerCommand &cmd)
 
 std::vector<uint8_t> encode_dim_off(int channel)
 {
-    const std::string wire = "C" + std::to_string(channel) + "991030";
+    const std::string wire = "C" + std::to_string(channel) + "001030";
     return std::vector<uint8_t>(wire.begin(), wire.end());
 }
 

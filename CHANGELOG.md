@@ -7,9 +7,13 @@ Firmware version is `PROJECT_VER` in the root `CMakeLists.txt` (Matter software 
 
 ## [Unreleased]
 
+## [0.1.2-e3] - 2026-08-27
+
 ### Changed
 
-- **Veldbus-poll cadans gelijk aan IPBox:** input-modules elke ~2 s (`I0000`); relay en dimmer elke ~20 s (`P0000` / `I9900`). Twee menuconfig-opties: `VELDBUS_POLL_INTERVAL_MS` (input, default 2000) en `VELDBUS_ACTUATOR_POLL_INTERVAL_MS` (relay/dimmer, default 20000). Zelfde gedrag als de Python gateway (`actuator_poll_interval`).
+- **IP0200PoE:** relay status decode uses `00xx`/`01xx` prefix rule — may improve startup status on older field modules (lab `0000`/`0100` unchanged).
+- **IP1100PoE / IP0200PoE / IP0300PoE:** poll cadence aligned with IPBox (~2 s inputs, ~20 s actuators); configurable via `VELDBUS_POLL_INTERVAL_MS` and `VELDBUS_ACTUATOR_POLL_INTERVAL_MS`.
+- **IP0300PoE:** off via unified `C<ch>001030`; on via last-level toggle (`T<ch>991000`); level control unchanged (`S<ch><code>1030`).
 
 ## [0.1.1-e2] - 2026-07-12
 
